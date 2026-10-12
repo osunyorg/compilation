@@ -1,0 +1,13 @@
+<html>
+  <head>
+    <title><%= yield_content :title %></title>
+    <link rel="stylesheet" href="/css/style.css">
+  </head>
+  <body>
+    <a href="/" class="logo">
+      <img src="/images/kelmscott-press.jpg" alt="Kelmscott Press" />
+    </a>
+    <h1><%= yield_content :title %></h1>
+    <%= yield %>
+  </body>
+</html>
