@@ -1,6 +1,6 @@
 # Kelmscott
 
-Configuration des droits
+Configuration des droits, si problème.
 
 ```bash
 chmod +x bin/setup

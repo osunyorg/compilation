@@ -1,2 +1,3 @@
 #!/bin/bash
 ruby compilation_web/app.rb
+sudo nginx config/nginx.conf
