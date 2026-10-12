@@ -14,12 +14,7 @@ get '/sites/:id/' do
   erb :show
 end
 
-post '/sites/:id/' do
-  system "bin/clone #{params[:id]}"
-  erb :show
-end
-
-patch '/sites/:id/' do
+patch '/sites/:id/compile' do
   system "bin/compile #{params[:id]}"
   erb :show
 end

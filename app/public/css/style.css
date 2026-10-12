@@ -1,3 +1,8 @@
 .logo img {
   width: 200px
 }
+.logo .logo__osuny {
+  width: 83px;
+  display: block;
+  margin-bottom: 20px;
+}
