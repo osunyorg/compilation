@@ -1,5 +1,7 @@
 # Kelmscott
 
+![Kelmscott Press](kelmscott-press.jpg)
+
 Ce référentiel doit être cloné sur la machine de compilation.
 
 ## Installation
