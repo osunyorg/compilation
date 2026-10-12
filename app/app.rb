@@ -41,6 +41,7 @@ end
 patch '/:university/:site/compile' do
   @university = params[:university]
   @site = params[:site]
+  @title = @site
 
   # TODO: il faut remplacer les halt par des logs (ou faire les 2)
   halt 400, 'Invalid university' unless valid_name?(@university)
@@ -60,5 +61,5 @@ patch '/:university/:site/compile' do
 
   compiled = system(COMPILE_PATH, repository_path)
   halt 500, 'Compilation failed' unless compiled
-  erb :show
+  erb :site
 end
