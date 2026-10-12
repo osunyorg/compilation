@@ -1,3 +1,2 @@
 #!/bin/bash
-ruby compilation_web/app.rb
-sudo compilation_web/nginx.conf
+sudo systemctl start kelmscott-puma.service

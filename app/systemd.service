@@ -1,0 +1,21 @@
+[Unit]
+Description=Puma HTTP Server for Kelmscott
+After=network.target
+
+[Service]
+Type=simple
+User=[USER]
+WorkingDirectory=/home/[USER]/compilation/app
+
+# Environment variables
+Environment=RACK_ENV=production
+
+# Start Puma
+ExecStart=/home/[USER]/.local/share/mise/shims/bundle exec puma -C config/puma.rb
+
+# Restart policy
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
