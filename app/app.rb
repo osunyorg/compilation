@@ -6,9 +6,15 @@ REPOSITORIES_PATH = File.expand_path('../repositories', __dir__)
 COMPILE_PATH = File.expand_path('../bin/compile', __dir__)
 
 def directories_in(path)
+  return [] unless File.directory?(path)
   Dir.children(path)
      .select { |name| File.directory?(File.join(path, name)) }
      .sort
+end
+
+# Lettres, chiffres, '_', '-' et '.', sans commencer par '.' (exclut '.', '..' et les dossiers cachés)
+def valid_name?(name)
+  name.match?(/\A[\w-][\w.-]*\z/)
 end
 
 get '/' do
@@ -35,10 +41,12 @@ end
 patch '/:university/:site/compile' do
   @university = params[:university]
   @site = params[:site]
+  @title = @site
 
-  # TODO: il faut vérifier que university et site ne soient pas malveillants (ex: ne commencent pas par '.' ou ne contiennent pas de caractères spéciaux)
   # TODO: il faut remplacer les halt par des logs (ou faire les 2)
-  halt 400, 'Missing gitpath' if params[:git_url].to_s.empty?
+  halt 400, 'Invalid university' unless valid_name?(@university)
+  halt 400, 'Invalid site' unless valid_name?(@site)
+  halt 400, 'Missing git_url' if params[:git_url].to_s.empty?
 
   repository_path = File.join(REPOSITORIES_PATH, @university, @site)
   if File.directory?(repository_path)
@@ -53,5 +61,5 @@ patch '/:university/:site/compile' do
 
   compiled = system(COMPILE_PATH, repository_path)
   halt 500, 'Compilation failed' unless compiled
-  erb :show
+  erb :site
 end

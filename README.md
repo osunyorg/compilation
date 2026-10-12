@@ -12,7 +12,7 @@ sudo apt install -y git
 git clone https://github.com/osunyorg/compilation.git
 cd compilation
 bin/setup
-bin/run
+bin/start
 ```
 
 ## Mise à jour
@@ -21,5 +21,5 @@ bin/run
 cd compilation
 git pull
 bin/update
-bin/run
+bin/restart
 ```
