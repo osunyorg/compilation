@@ -27,11 +27,12 @@ patch '/sites/:university_slug/:site_id/compile' do
 
   repository_path = File.join(REPOSITORIES_PATH, params[:university_slug], params[:site_id])
   if File.directory?(repository_path)
-    pulled = system('git', '-C', repository_path, 'pull')
+    pulled = system('git', '-C', repository_path, 'pull') &&
+             system('git', '-C', repository_path, 'submodule', 'update', '--init', '--recursive')
     halt 500, 'Pull failed' unless pulled
   else
     FileUtils.mkdir_p(REPOSITORIES_PATH)
-    cloned = system('git', 'clone', '--', params[:gitpath], repository_path)
+    cloned = system('git', 'clone', '--recurse-submodules', '--', params[:gitpath], repository_path)
     halt 500, 'Clone failed' unless cloned
   end
 
