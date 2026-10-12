@@ -1,7 +1,7 @@
 <% content_for :title, 'Kelmscott' %>
 
 <ul>
-  <% @repositories.each do |repository| %>
-    <li><a href="/sites/<%= repository %>/"><%= repository %></a></li>
+  <% @universities.each do |university| %>
+    <li><a href="/<%= university %>/"><%= university %></a></li>
   <% end %>
 </ul>

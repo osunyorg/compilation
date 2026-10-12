@@ -1,26 +1,30 @@
 require 'sinatra'
 require 'sinatra/content_for'
-require 'fileutils'
+# require 'fileutils'
 
 REPOSITORIES_PATH = File.expand_path('../repositories', __dir__)
 COMPILE_PATH = File.expand_path('../bin/compile', __dir__)
 
+def directories_in(path)
+  Dir.children(REPOSITORIES_PATH)
+     .select { |name| File.directory?(File.join(REPOSITORIES_PATH, name)) }
+     .sort
+end
+
 get '/' do
-  @repositories = Dir.children(REPOSITORIES_PATH)
-                     .select { |name| File.directory?(File.join(REPOSITORIES_PATH, name)) }
-                     .sort
+  @universities = directories_in(REPOSITORIES_PATH)
   erb :index
 end
 
-get '/sites/:university_slug/' do
+get '/:university_slug/' do
   erb :university
 end
 
-get '/sites/:university_slug/:site_id' do
+get '/:university_slug/:site_id' do
   erb :site
 end
 
-patch '/sites/:university_slug/:site_id/compile' do
+patch '/:university_slug/:site_id/compile' do
   # TODO: il faut vérifier que university_slug et site_id ne soient pas malveillants (ex: ne commencent pas par '.' ou ne contiennent pas de caractères spéciaux)
   # TODO: il faut remplacer les halt par des logs (ou faire les 2)
   halt 400, 'Missing gitpath' if params[:git_url].to_s.empty?
