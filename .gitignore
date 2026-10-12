@@ -70,3 +70,5 @@ yarn-debug.log*
 
 /repositories/*
 !/repositories/.keep
+
+.DS_Store
