@@ -18,7 +18,7 @@ def valid_name?(name)
 end
 
 def get_logs(university, site)
-  path = "repositories/#{university}/#{site}/log.txt"
+  path = REPOSITORIES_PATH + "/#{university}/#{site}/log.txt"
   File.read path
 end
 
