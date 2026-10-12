@@ -17,6 +17,11 @@ def valid_name?(name)
   name.match?(/\A[\w-][\w.-]*\z/)
 end
 
+def get_logs(university, site)
+  path = "repositories/#{university}/#{site}/log.txt"
+  File.read path
+end
+
 get '/' do
   @title = 'Kelmscott'
   @universities = directories_in(REPOSITORIES_PATH)
@@ -35,6 +40,7 @@ get '/:university/:site' do
   @university = params[:university]
   @site = params[:site]
   @title = @site
+  @logs = get_logs(@university, @site)
   erb :site
 end
 

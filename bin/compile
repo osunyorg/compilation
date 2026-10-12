@@ -1,5 +1,5 @@
 #!/bin/bash
 set -e
 cd "$1"
-yarn
-yarn osuny build
+yarn install
+yarn osuny build > log.txt
