@@ -3,3 +3,4 @@ curl -fsSL https://mise.run | sh
 mise use -g hugo-extended@0.165.0
 mise use -g node@26
 mise use -g ruby@4.0.6
+git clone git@github.com:osunyorg/compilation_web.git
