@@ -1,14 +1,43 @@
 <html>
   <head>
     <title><%= @title %></title>
-    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/assets/css/osuny.css">
+    <link rel="stylesheet" href="/assets/css/style.css">
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/images/favicons/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/images/favicons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/images/favicons/favicon-16x16.png">
+    <link rel="icon" type="image/x-icon" href="/assets/images/favicons/favicon.ico">
   </head>
   <body>
-    <a href="/" class="logo">
-      <img src="/images/osuny-black.svg" alt="osuny" width="83" height="32" class="logo__osuny" />
-      <img src="/images/kelmscott-press.jpg" alt="Kelmscott Press" class="logo__kelmscott" />
-    </a>
-    <h1><%= @title %></h1>
-    <%= yield %>
+    <header id="document-header" role="banner">
+      <nav class="primary-menu" aria-label="Menu principal">
+        <div class="container">
+          <a class="logo" href="/" title="Accueil - Kelmscott">
+            <img src="/assets/images/logo-osuny.svg" alt="osuny" height="170" width="441">
+          </a>
+        </div>
+      </nav>
+    </header>
+    <main id="main">
+      <header class="hero hero--with-image hero--image-landscape">
+        <div class="container">
+          <div class="content">
+            <div class="hero-text">
+              <hgroup>
+                <h1><%= @title %></h1>
+              </hgroup>
+            </div>
+            <figure class="hero-image image-landscape" role="figure" aria-label="">
+              <picture>
+                <img src="/assets/images/kelmscott-press.jpg" alt="Kelmscott Press" class="logo__kelmscott" />
+              </picture>
+            </figure>
+          </div>
+        </div>
+      </header>
+      <div class="container">
+        <%= yield %>
+      </div>
+    </main>
   </body>
 </html>
