@@ -6,9 +6,10 @@ Ce référentiel doit être cloné sur la machine de compilation.
 
 ```bash
 sudo apt install git
-git clone git@github.com:osunyorg/compilation.git
-compilation/bin/setup
-compilation/bin/run
+git clone https://github.com/osunyorg/compilation.git
+cd compilation
+bin/setup
+bin/run
 ```
 
 ## Mise à jour
