@@ -1,10 +1,35 @@
 #!/bin/bash
-echo 'export USERNAME="kelmscott"' >> ~/.home/.bashrc
-bash
-sudo apt install git
+
+# Build tools needed for Ruby
+sudo apt install -y build-essential
+
+# Install Mise
 curl -fsSL https://mise.run | sh
-echo "eval \"\$(/Users/$USERNAME/.local/bin/mise activate zsh)\"" >> "/Users/$USERNAME/.zshrc"
+echo 'eval "$(~/.local/bin/mise activate bash)"' >> ~/.bashrc
+source ~/.bashrc
+
+# Install tools via Mise
+mise use -g ruby@4.0.6
 mise use -g hugo-extended@0.165.0
 mise use -g node@26
-mise use -g ruby@4.0.6
-git clone git@github.com:osunyorg/compilation_web.git
+
+npm install -g yarn
+
+# Sinatra
+## Build the app
+(
+  cd app;
+  bundle config set deployment true;
+  bundle config set without "development test";
+  bundle install
+)
+## Install Nginx reverse proxy
+sudo apt install -y nginx
+sudo cp app/nginx.conf /etc/nginx/sites-available/kelmscott.conf
+sudo ln -s /etc/nginx/sites-available/kelmscott.conf /etc/nginx/sites-enabled/
+sudo systemctl restart nginx
+## Install Puma systemd service
+sudo cp app/systemd.service /etc/systemd/system/kelmscott-puma.service
+sudo sed -i -e "s/\[USER\]/${USER}/g" /etc/systemd/system/kelmscott-puma.service
+sudo systemctl daemon-reload
+sudo systemctl enable kelmscott-puma.service
