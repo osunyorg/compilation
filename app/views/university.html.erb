@@ -1,1 +1,5 @@
-<% content_for :title, params[:university_slug] %>
+<ul>
+  <% @sites.each do |site| %>
+    <li><a href="/<%= @university %>/<%= site %>"><%= site %></a></li>
+  <% end %>
+</ul>
