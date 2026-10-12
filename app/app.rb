@@ -12,8 +12,12 @@ get '/' do
   erb :index
 end
 
-get '/sites/:id/' do
-  erb :show
+get '/sites/:university_slug/' do
+  erb :university
+end
+
+get '/sites/:university_slug/:site_id' do
+  erb :site
 end
 
 patch '/sites/:university_slug/:site_id/compile' do
