@@ -19,7 +19,6 @@ bin/run
 ```bash
 cd compilation
 git pull
-cd ..
-compilation/bin/update
-compilation/bin/run
+bin/update
+bin/run
 ```
