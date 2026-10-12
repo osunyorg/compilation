@@ -1,2 +1,2 @@
 #!/bin/bash
-ruby app.rb
+ruby compilation_web/app.rb
