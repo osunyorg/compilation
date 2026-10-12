@@ -1,4 +1,6 @@
 #!/bin/bash
-cd compilation_web
 git pull
-bundle install
+(
+  cd app;
+  bundle install
+)
