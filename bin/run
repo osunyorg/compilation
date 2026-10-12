@@ -1,2 +1,2 @@
 #!/bin/bash
-ruby kelmscott/app.rb
+ruby app.rb
