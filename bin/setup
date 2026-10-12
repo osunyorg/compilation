@@ -1,1 +1,5 @@
-# TODO
+sudo apt install git
+curl -fsSL https://mise.run | sh
+mise use -g hugo-extended@0.165.0
+mise use -g node@26
+mise use -g ruby@4.0.6
