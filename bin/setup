@@ -4,16 +4,20 @@
 sudo apt install -y build-essential
 
 # Install Mise
-curl -fsSL https://mise.run | sh
-echo 'eval "$(~/.local/bin/mise activate bash)"' >> ~/.bashrc
-source ~/.bashrc
+if ! command -v mise &> /dev/null; then
+  curl -fsSL https://mise.run | sh
+  echo 'eval "$(~/.local/bin/mise activate bash)"' >> ~/.bashrc
+  source ~/.bashrc
+fi
 
 # Install tools via Mise
 mise use -g ruby@4.0.6
 mise use -g hugo-extended@0.165.0
 mise use -g node@26
 
-npm install -g yarn
+if ! command -v yarn &> /dev/null; then
+  npm install -g yarn
+fi
 
 # Sinatra
 ## Build the app
