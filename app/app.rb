@@ -1,6 +1,6 @@
 require 'sinatra'
 require 'sinatra/content_for'
-# require 'fileutils'
+require 'fileutils'
 
 REPOSITORIES_PATH = File.expand_path('../repositories', __dir__)
 COMPILE_PATH = File.expand_path('../bin/compile', __dir__)
