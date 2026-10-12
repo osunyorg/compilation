@@ -6,6 +6,7 @@ REPOSITORIES_PATH = File.expand_path('../repositories', __dir__)
 COMPILE_PATH = File.expand_path('../bin/compile', __dir__)
 
 def directories_in(path)
+  return [] unless File.directory?(path)
   Dir.children(path)
      .select { |name| File.directory?(File.join(path, name)) }
      .sort

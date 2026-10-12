@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Build tools needed for Ruby
-sudo apt install -y build-essential
+sudo apt install -y build-essential curl
 
 # Install Mise
 if ! command -v mise &> /dev/null; then
