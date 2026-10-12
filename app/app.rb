@@ -38,7 +38,7 @@ patch '/:university/:site/compile' do
 
   # TODO: il faut vérifier que university et site ne soient pas malveillants (ex: ne commencent pas par '.' ou ne contiennent pas de caractères spéciaux)
   # TODO: il faut remplacer les halt par des logs (ou faire les 2)
-  halt 400, 'Missing gitpath' if params[:git_url].to_s.empty?
+  halt 400, 'Missing git_url' if params[:git_url].to_s.empty?
 
   repository_path = File.join(REPOSITORIES_PATH, @university, @site)
   if File.directory?(repository_path)
