@@ -27,6 +27,7 @@ npm install -g yarn
 sudo apt install -y nginx
 sudo cp app/nginx.conf /etc/nginx/sites-available/kelmscott.conf
 sudo ln -s /etc/nginx/sites-available/kelmscott.conf /etc/nginx/sites-enabled/
+sudo sed -i -e "s/\[USER\]/${USER}/g" /etc/nginx/sites-available/kelmscott.conf
 sudo systemctl restart nginx
 ## Install Puma systemd service
 sudo cp app/systemd.service /etc/systemd/system/kelmscott-puma.service

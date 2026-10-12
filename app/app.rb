@@ -38,7 +38,7 @@ patch '/:university/:site/compile' do
 
   # TODO: il faut vérifier que university et site ne soient pas malveillants (ex: ne commencent pas par '.' ou ne contiennent pas de caractères spéciaux)
   # TODO: il faut remplacer les halt par des logs (ou faire les 2)
-  halt 400, 'Missing gitpath' if params[:gitpath].to_s.empty?
+  halt 400, 'Missing gitpath' if params[:git_url].to_s.empty?
 
   repository_path = File.join(REPOSITORIES_PATH, @university, @site)
   if File.directory?(repository_path)
@@ -47,7 +47,7 @@ patch '/:university/:site/compile' do
     halt 500, 'Pull failed' unless pulled
   else
     FileUtils.mkdir_p(REPOSITORIES_PATH)
-    cloned = system('git', 'clone', '--recurse-submodules', '--', params[:gitpath], repository_path)
+    cloned = system('git', 'clone', '--recurse-submodules', '--', params[:git_url], repository_path)
     halt 500, 'Clone failed' unless cloned
   end
 
