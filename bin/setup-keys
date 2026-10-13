@@ -1,0 +1,25 @@
+#!/bin/bash
+# Génère la paire de clés et le jeton de Kelmscott s'ils n'existent pas encore,
+# puis affiche les valeurs à renseigner dans la configuration de l'admin Osuny.
+set -e
+cd "$(dirname "$0")/../app"
+bundle exec ruby -e '
+  require "rbnacl"
+  require "base64"
+  require "securerandom"
+
+  key_path = "config/kelmscott.key"
+  token_path = "config/kelmscott.token"
+
+  unless File.exist?(key_path)
+    private_key = RbNaCl::PrivateKey.generate
+    File.write(key_path, Base64.strict_encode64(private_key.to_bytes), perm: 0600)
+  end
+  unless File.exist?(token_path)
+    File.write(token_path, SecureRandom.hex(32), perm: 0600)
+  end
+
+  private_key = RbNaCl::PrivateKey.new(Base64.strict_decode64(File.read(key_path).strip))
+  puts "KELMSCOTT_PUBLIC_KEY: #{Base64.strict_encode64(private_key.public_key.to_bytes)}"
+  puts "KELMSCOTT_TOKEN: #{File.read(token_path).strip}"
+'
