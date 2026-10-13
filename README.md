@@ -16,6 +16,8 @@ bin/setup-keys
 bin/start
 ```
 
+Une fois le domaine pointé, exécuter `bin/setup-ssl`
+
 ## Mise à jour
 
 ```bash
