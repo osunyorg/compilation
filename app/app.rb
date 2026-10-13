@@ -46,7 +46,7 @@ end
 get '/:university/:site' do
   @university = params[:university]
   @site = params[:site]
-  @size = Dir["repositories/#{@university}/#{@site}/**/*"].select { |f| File.file?(f) }.sum { |f| File.size(f) }
+  @size = get_size(@university, @site)
   @title = @site
   @logs = get_logs(@university, @site)
   erb :site
