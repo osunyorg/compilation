@@ -6,4 +6,5 @@ set -euo pipefail
 : "${AWS_ACCESS_KEY_ID:?AWS_ACCESS_KEY_ID manquant}"
 : "${AWS_SECRET_ACCESS_KEY:?AWS_SECRET_ACCESS_KEY manquant}"
 cd "$1"
-dxfl deploy "$DXFL_BUCKET" public/ --yes
+# Version figée, téléchargée et mise en cache par npx au premier lancement
+npx --yes dxfl@0.7.0 deploy "$DXFL_BUCKET" public/ --yes
