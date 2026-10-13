@@ -120,7 +120,7 @@ Après une compilation réussie, Kelmscott lance `bin/sync/<sync_method>` avec l
 
 | Méthode | Outil | Variables |
 |---------|-------|-----------|
-| `dxfl` | [dxfl](https://git.deuxfleurs.fr/Deuxfleurs/dxfl) | `DXFL_WEBSITE`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` (onglet S3 du Guichet Deuxfleurs) |
+| `dxfl` | [dxfl](https://git.deuxfleurs.fr/Deuxfleurs/dxfl) | `DXFL_BUCKET`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` (onglet S3 du Guichet Deuxfleurs) |
 | `rsync` | rsync sur SSH | `RSYNC_HOST`, `RSYNC_PORT` (22 par défaut), `RSYNC_USER`, `RSYNC_PATH`, `RSYNC_SSH_PRIVATE_KEY` |
 | `sftp` | rclone | `SFTP_HOST`, `SFTP_PORT` (22 par défaut), `SFTP_USER`, `SFTP_PASSWORD`, `SFTP_PATH` |
 | `s3` | rclone | `S3_BUCKET`, `S3_ENDPOINT` (vide pour AWS), `S3_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` |

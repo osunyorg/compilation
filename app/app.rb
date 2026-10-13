@@ -16,7 +16,7 @@ TOKEN_PATH = File.expand_path('config/kelmscott.token', __dir__)
 # Chaque méthode correspond à un script dans bin/sync
 KEYS_BY_SYNC_METHOD = {
   'sftp' => %w[SFTP_HOST SFTP_PORT SFTP_USER SFTP_PASSWORD SFTP_PATH],
-  'dxfl' => %w[DXFL_WEBSITE AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY],
+  'dxfl' => %w[DXFL_BUCKET AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY],
   'rsync' => %w[RSYNC_HOST RSYNC_PORT RSYNC_USER RSYNC_PATH RSYNC_SSH_PRIVATE_KEY],
   's3' => %w[S3_BUCKET S3_ENDPOINT S3_REGION AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY]
 }.freeze
