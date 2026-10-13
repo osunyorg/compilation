@@ -98,16 +98,31 @@ curl -X POST https://compilation.osuny.org/noesya/noesya-www \
 - `git_url` doit être une URL `https://` ;
 - `sync_method` vaut `sftp`, `dxfl`, `rsync` ou `s3` ;
 - `variables` n'accepte que les clés prévues pour la méthode choisie (même liste blanche que `Communication::Website::Variable` dans l'admin) ;
-- les secrets (`SFTP_PASSWORD`, `DXFL_PASSWORD`, `RSYNC_SSH_PRIVATE_KEY`, `AWS_SECRET_ACCESS_KEY`) sont envoyés tels que stockés par l'admin, chiffrés : Kelmscott les déchiffre en mémoire et ne les écrit nulle part.
+- les secrets (`SFTP_PASSWORD`, `RSYNC_SSH_PRIVATE_KEY`, `AWS_SECRET_ACCESS_KEY`) sont envoyés tels que stockés par l'admin, chiffrés : Kelmscott les déchiffre en mémoire et ne les écrit nulle part.
 
 Réponses :
 
 | Code | Signification |
 |------|---------------|
-| 202 | Demande acceptée, le clone/pull puis la compilation s'exécutent en arrière-plan |
+| 202 | Demande acceptée, le clone/pull, la compilation puis la synchronisation s'exécutent en arrière-plan |
 | 400 | Paramètres invalides, ou secret impossible à déchiffrer (mauvaise clé publique dans l'admin) |
 | 401 | Jeton absent ou invalide |
 | 415 | Le corps n'est pas en `application/json` |
 | 503 | Les clés n'ont pas été générées (`bin/setup-keys`) |
 
-Les compilations d'un même site sont exécutées l'une après l'autre. Les secrets ne sont pas transmis à la compilation (`yarn install` exécute du code issu du dépôt) ; ils seront utilisés uniquement lors de la synchronisation.
+Les compilations d'un même site sont exécutées l'une après l'autre. Les secrets ne sont pas transmis à la compilation (`yarn install` exécute du code issu du dépôt) ; ils sont utilisés uniquement lors de la synchronisation.
+
+## Synchronisation
+
+Les scripts de synchronisation sont dans Kelmscott (`bin/sync`), et non dans les dépôts des sites : seul du code maîtrisé par Kelmscott a accès aux secrets déchiffrés.
+
+Après une compilation réussie, Kelmscott lance `bin/sync/<sync_method>` avec le chemin du dépôt, et uniquement les variables de la méthode choisie dans son environnement. Le dossier envoyé est toujours `public/`. Les liens symboliques sont ignorés et aucun secret n'est écrit sur le disque. La sortie est ajoutée au `log.txt` du site.
+
+| Méthode | Outil | Variables |
+|---------|-------|-----------|
+| `dxfl` | [dxfl](https://git.deuxfleurs.fr/Deuxfleurs/dxfl) | `DXFL_WEBSITE`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` (onglet S3 du Guichet Deuxfleurs) |
+| `rsync` | rsync sur SSH | `RSYNC_HOST`, `RSYNC_PORT` (22 par défaut), `RSYNC_USER`, `RSYNC_PATH`, `RSYNC_SSH_PRIVATE_KEY` |
+| `sftp` | rclone | `SFTP_HOST`, `SFTP_PORT` (22 par défaut), `SFTP_USER`, `SFTP_PASSWORD`, `SFTP_PATH` |
+| `s3` | rclone | `S3_BUCKET`, `S3_ENDPOINT` (vide pour AWS), `S3_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` |
+
+Pour `dxfl`, le fichier `deuxfleurs.toml` du dépôt (redirections, en-têtes) est pris en compte. Pour `rsync`, la clé publique de l'hôte distant est acceptée à la première connexion, puis vérifiée.

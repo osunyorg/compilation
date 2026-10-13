@@ -1,0 +1,18 @@
+#!/bin/bash
+# Synchronisation par rsync sur SSH
+# La clé privée est chargée dans un ssh-agent dédié, sans être écrite sur le disque.
+set -euo pipefail
+: "${RSYNC_HOST:?RSYNC_HOST manquant}"
+: "${RSYNC_USER:?RSYNC_USER manquant}"
+: "${RSYNC_PATH:?RSYNC_PATH manquant}"
+: "${RSYNC_SSH_PRIVATE_KEY:?RSYNC_SSH_PRIVATE_KEY manquant}"
+
+eval "$(ssh-agent -s)" > /dev/null
+trap 'ssh-agent -k > /dev/null' EXIT
+printf '%s\n' "$RSYNC_SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add - 2> /dev/null
+unset RSYNC_SSH_PRIVATE_KEY
+
+# Pas de -a : sans -l, les liens symboliques sont ignorés
+rsync -rtvz --delete \
+  -e "ssh -p ${RSYNC_PORT:-22} -o StrictHostKeyChecking=accept-new" \
+  "$1/public/" "$RSYNC_USER@$RSYNC_HOST:$RSYNC_PATH/"

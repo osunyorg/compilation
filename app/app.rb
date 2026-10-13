@@ -7,18 +7,20 @@ require 'rbnacl'
 
 REPOSITORIES_PATH = File.expand_path('../repositories', __dir__)
 COMPILE_PATH = File.expand_path('../bin/compile', __dir__)
+SYNC_PATH = File.expand_path('../bin/sync', __dir__)
 # Générés par bin/setup-keys, jamais versionnés
 PRIVATE_KEY_PATH = File.expand_path('config/kelmscott.key', __dir__)
 TOKEN_PATH = File.expand_path('config/kelmscott.token', __dir__)
 
 # Liste blanche, identique à Communication::Website::Variable dans l'admin Osuny
+# Chaque méthode correspond à un script dans bin/sync
 KEYS_BY_SYNC_METHOD = {
   'sftp' => %w[SFTP_HOST SFTP_PORT SFTP_USER SFTP_PASSWORD SFTP_PATH],
-  'dxfl' => %w[DXFL_USERNAME DXFL_PASSWORD DXFL_WEBSITE],
+  'dxfl' => %w[DXFL_WEBSITE AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY],
   'rsync' => %w[RSYNC_HOST RSYNC_PORT RSYNC_USER RSYNC_PATH RSYNC_SSH_PRIVATE_KEY],
   's3' => %w[S3_BUCKET S3_ENDPOINT S3_REGION AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY]
 }.freeze
-SECRET_KEYS = %w[SFTP_PASSWORD DXFL_PASSWORD RSYNC_SSH_PRIVATE_KEY AWS_SECRET_ACCESS_KEY].freeze
+SECRET_KEYS = %w[SFTP_PASSWORD RSYNC_SSH_PRIVATE_KEY AWS_SECRET_ACCESS_KEY].freeze
 
 def directories_in(path)
   return [] unless File.directory?(path)
@@ -70,7 +72,13 @@ def fetch_repository(repository_path, git_url)
   end
 end
 
-def publish(university, site, git_url, environment)
+def sync(repository_path, sync_method, environment)
+  log_path = File.join(repository_path, 'log.txt')
+  system(environment, File.join(SYNC_PATH, sync_method), repository_path,
+         out: [log_path, 'a'], err: [:child, :out])
+end
+
+def publish(university, site, git_url, sync_method, environment)
   repository_path = File.join(REPOSITORIES_PATH, university, site)
   FileUtils.mkdir_p(File.dirname(repository_path))
   # Un seul build à la fois par site, y compris entre workers Puma
@@ -79,7 +87,7 @@ def publish(university, site, git_url, environment)
     return warn("[#{university}/#{site}] Récupération du dépôt impossible") unless fetch_repository(repository_path, git_url)
     # Les secrets ne sont pas transmis à la compilation, qui exécute du code du dépôt (yarn install)
     return warn("[#{university}/#{site}] Échec de la compilation") unless system(COMPILE_PATH, repository_path)
-    # TODO: synchronisation avec `environment` (variables et secrets déchiffrés)
+    return warn("[#{university}/#{site}] Échec de la synchronisation") unless sync(repository_path, sync_method, environment)
   end
 rescue StandardError => e
   warn "[#{university}/#{site}] #{e.class}: #{e.message}"
@@ -139,7 +147,7 @@ post '/:university/:site' do
   end
   environment = variables.merge(secrets)
 
-  Thread.new { publish(university, site, git_url, environment) }
+  Thread.new { publish(university, site, git_url, sync_method, environment) }
   status 202
   'Accepted'
 end

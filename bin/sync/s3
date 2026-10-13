@@ -1,0 +1,20 @@
+#!/bin/bash
+# Synchronisation vers un bucket S3 (AWS, Scaleway, OVH, Garage…), via rclone
+# La configuration est passée par variables d'environnement, sans fichier.
+set -euo pipefail
+: "${S3_BUCKET:?S3_BUCKET manquant}"
+: "${AWS_ACCESS_KEY_ID:?AWS_ACCESS_KEY_ID manquant}"
+: "${AWS_SECRET_ACCESS_KEY:?AWS_SECRET_ACCESS_KEY manquant}"
+
+export RCLONE_CONFIG_DEST_TYPE=s3
+export RCLONE_CONFIG_DEST_ENV_AUTH=true
+if [ -n "${S3_ENDPOINT:-}" ]; then
+  export RCLONE_CONFIG_DEST_PROVIDER=Other
+  export RCLONE_CONFIG_DEST_ENDPOINT="$S3_ENDPOINT"
+else
+  export RCLONE_CONFIG_DEST_PROVIDER=AWS
+fi
+export RCLONE_CONFIG_DEST_REGION="${S3_REGION:-}"
+
+# rclone ignore les liens symboliques par défaut
+rclone sync "$1/public/" "dest:$S3_BUCKET" --verbose

@@ -1,0 +1,20 @@
+#!/bin/bash
+# Synchronisation par SFTP avec mot de passe, via rclone
+# La configuration est passée par variables d'environnement, sans fichier.
+set -euo pipefail
+: "${SFTP_HOST:?SFTP_HOST manquant}"
+: "${SFTP_USER:?SFTP_USER manquant}"
+: "${SFTP_PASSWORD:?SFTP_PASSWORD manquant}"
+: "${SFTP_PATH:?SFTP_PATH manquant}"
+
+export RCLONE_CONFIG_DEST_TYPE=sftp
+export RCLONE_CONFIG_DEST_HOST="$SFTP_HOST"
+export RCLONE_CONFIG_DEST_PORT="${SFTP_PORT:-22}"
+export RCLONE_CONFIG_DEST_USER="$SFTP_USER"
+# Lu sur l'entrée standard pour ne pas apparaître dans la liste des processus
+RCLONE_CONFIG_DEST_PASS="$(printf '%s' "$SFTP_PASSWORD" | rclone obscure -)"
+export RCLONE_CONFIG_DEST_PASS
+unset SFTP_PASSWORD
+
+# rclone ignore les liens symboliques par défaut
+rclone sync "$1/public/" "dest:$SFTP_PATH" --verbose

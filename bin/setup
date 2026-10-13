@@ -3,6 +3,9 @@
 # Build tools needed for Ruby
 sudo apt install -y build-essential curl libsodium-dev
 
+# Synchronisation des sites (bin/sync)
+sudo apt install -y openssh-client rsync rclone
+
 # Install Mise
 if ! command -v mise &> /dev/null; then
   curl -fsSL https://mise.run | sh
@@ -18,6 +21,8 @@ mise use -g node@26
 if ! command -v yarn &> /dev/null; then
   npm install -g yarn
 fi
+npm install -g dxfl@0.7.0
+mise reshim
 
 # Sinatra
 ## Build the app
