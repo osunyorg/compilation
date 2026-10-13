@@ -27,9 +27,7 @@ bin/restart
 
 ## Génération du certificat SSL
 
-```bash
-sudo certbot --nginx
-```
+Une fois le domaine pointé, exécuter `bin/setup-ssl`
 
 ## Clés de chiffrement
 
