@@ -18,8 +18,15 @@ def valid_name?(name)
 end
 
 def get_logs(university, site)
-  path = REPOSITORIES_PATH + "/#{university}/#{site}/log.txt"
+  path = "#{REPOSITORIES_PATH}/#{university}/#{site}/log.txt"
+  return unless File.exist? path
   File.read path
+end
+
+def get_size(university, site)
+  path = "#{REPOSITORIES_PATH}/#{university}/#{site}/**/*"
+  Dir[path].select { |f| File.file?(f) }
+           .sum { |f| File.size(f) }
 end
 
 get '/' do
@@ -39,6 +46,7 @@ end
 get '/:university/:site' do
   @university = params[:university]
   @site = params[:site]
+  @size = Dir["repositories/#{@university}/#{@site}/**/*"].select { |f| File.file?(f) }.sum { |f| File.size(f) }
   @title = @site
   @logs = get_logs(@university, @site)
   erb :site

@@ -6,3 +6,10 @@
   display: block;
   margin-bottom: 20px;
 }
+pre {
+  background: #111111;
+  color: #EEEEEE;
+  padding: 20px;
+  font-size: 14px;
+  line-height: 120%;
+}
