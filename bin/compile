@@ -2,4 +2,4 @@
 set -e
 cd "$1"
 yarn install
-yarn osuny build > log.txt
+yarn osuny build >> log.txt
