@@ -17,8 +17,7 @@ bin/rails runner 'k = RbNaCl::SigningKey.generate; puts "KELMSCOTT_SIGNING_KEY: 
 Puis sur Kelmscott, avec la clé publique affichée :
 
 ```bash
-cd kelmscott
-bin/setup-keys <clé publique de signature de l'admin>
+~/kelmscott/bin/setup-keys <clé publique de signature de l'admin>
 ```
 
 Le script crée la clé privée de Kelmscott si elle n'existe pas encore, et enregistre la clé publique de l'admin :
@@ -45,9 +44,8 @@ La clé privée doit être sauvegardée hors de la machine (gestionnaire de mots
 Pour renouveler la paire de clés :
 
 ```bash
-rm app/config/kelmscott.key
-bin/setup-keys
-bin/restart
+rm ~/kelmscott/app/config/kelmscott.key
+~/kelmscott/bin/setup-keys
 ```
 
-La clé de signature de l'admin se renouvelle sans conséquence sur les secrets : générer une nouvelle clé dans l'admin, mettre à jour `KELMSCOTT_SIGNING_KEY`, puis lancer `bin/setup-keys <nouvelle clé publique>` et `bin/restart` sur Kelmscott.
+La clé de signature de l'admin se renouvelle sans conséquence sur les secrets : générer une nouvelle clé dans l'admin, mettre à jour `KELMSCOTT_SIGNING_KEY`, puis lancer `~/kelmscott/bin/setup-keys <nouvelle clé publique>` sur Kelmscott.

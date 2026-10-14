@@ -124,7 +124,7 @@ La synchronisation échoue ensuite, faute de clés dxfl : c'est normal, et le ba
 
 ## 5. Publication réelle
 
-Activer Kelmscott sur un site dans l'admin Osuny et le publier. Attendu : le log du site (page `https://DOMAINE/<université>/<site>`) se termine par les durées et le poids, le badge passe à `succès`, et le site est en ligne.
+Activer Kelmscott sur un site dans l'admin Osuny et le publier. Attendu : le log du site (page `https://DOMAINE/<organisation>/<dépôt>`) se termine par les durées et le poids, le badge passe à `succès`, et le site est en ligne.
 
 ## 6. Nettoyage
 

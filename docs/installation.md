@@ -1,11 +1,19 @@
 # Installation d'une VM
 
+```
+app/        interface web et réception des demandes de l'admin Osuny (Sinatra)
+bin/        administration de la machine, lancée à la main
+sandbox/    récupération et compilation des sites, qui exécutent le code des dépôts, sans droits
+sync/       synchronisation des sites compilés, seule à recevoir les secrets
+toolchain/  dépendances du thème, installées une fois et partagées par tous les builds
+```
+
 ## Prérequis
 
 - Une VM **Ubuntu 24.04 LTS** neuve, avec une IP fixe : les hébergeurs des sites peuvent la mettre en liste blanche.
 - Un accès SSH avec l'utilisateur `ubuntu`, qui a les droits sudo.
 - Un nom de domaine (par exemple `kelmscott.osuny.org`) dont l'enregistrement DNS pointe vers l'IP de la VM.
-- De l'espace disque : chaque site garde son dépôt (sources, historique git) et sa compilation, soit quelques dizaines de Mo par site.
+- De l'espace disque : chaque site garde son dépôt (sources et dernier commit) et sa compilation, soit quelques dizaines de Mo par site.
 
 ## 1. Système et pare-feu
 
@@ -23,10 +31,8 @@ sudo ufw enable
 Le dépôt doit être cloné dans `~/kelmscott` : le service systemd et la configuration nginx utilisent ce chemin.
 
 ```bash
-cd ~
-git clone https://github.com/osunyorg/kelmscott.git
-cd kelmscott
-bin/setup
+git clone https://github.com/osunyorg/kelmscott.git ~/kelmscott
+~/kelmscott/bin/setup
 ```
 
 `bin/setup` installe :
@@ -44,13 +50,15 @@ Remplacer `server_name` par le domaine de la VM dans `/etc/nginx/sites-available
 
 ```bash
 sudo systemctl reload nginx
-bin/setup-ssl
+~/kelmscott/bin/setup-ssl
 ```
 
 ## 4. Clés de chiffrement
 
+Générer d'abord la clé de signature dans l'admin Osuny (voir [Clés de chiffrement](cles.md)), puis :
+
 ```bash
-bin/setup-keys <clé publique de signature de l'admin>
+~/kelmscott/bin/setup-keys <clé publique de signature de l'admin>
 ```
 
 Reporter la clé publique affichée dans la configuration de l'admin Osuny, et sauvegarder la clé privée hors de la machine (voir [Clés de chiffrement](cles.md)).
@@ -58,7 +66,7 @@ Reporter la clé publique affichée dans la configuration de l'admin Osuny, et s
 ## 5. Démarrage
 
 ```bash
-bin/start
+~/kelmscott/bin/start
 ```
 
 ## 6. Restriction de sudo (recommandé)
@@ -69,4 +77,4 @@ Sur les images cloud, `ubuntu` a généralement un sudo complet sans mot de pass
 ubuntu ALL=(root) NOPASSWD: /usr/bin/systemctl restart kelmscott-puma.service, /usr/bin/systemctl start kelmscott-puma.service
 ```
 
-`bin/setup` et `bin/update` ont alors besoin d'un autre compte administrateur. Faire la modification avec `sudo visudo -f /etc/sudoers.d/90-cloud-init-users`, en gardant une deuxième session SSH ouverte pour ne pas se retrouver bloqué.
+`bin/update` a alors besoin d'un autre compte administrateur : il exécute le code, les gems et les outils sous l'utilisateur du service (le propriétaire du dépôt), et le reste avec sudo. Faire la modification avec `sudo visudo -f /etc/sudoers.d/90-cloud-init-users`, en gardant une deuxième session SSH ouverte pour ne pas se retrouver bloqué.

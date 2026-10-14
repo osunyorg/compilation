@@ -1,13 +1,32 @@
 #!/bin/bash
+# Met à jour Kelmscott : code, gems, sandbox, puis redémarrage du service.
 set -e
 cd "$(dirname "$0")/.."
-git pull
+
+# L'utilisateur du service est le propriétaire du dépôt : le script peut être lancé par un autre administrateur
+SERVICE_USER="$(stat -c %U .)"
+SERVICE_HOME="$(getent passwd "$SERVICE_USER" | cut -d: -f6)"
+# Exécute une commande sous l'utilisateur du service, avec ses outils mise
+as_service() {
+  if [ "$(id -un)" = "$SERVICE_USER" ]; then
+    "$SERVICE_HOME/.local/bin/mise" exec -- "$@"
+  else
+    sudo -u "$SERVICE_USER" -H "$SERVICE_HOME/.local/bin/mise" exec -- "$@"
+  fi
+}
+
+# Après le pull, on relance la nouvelle version du script : bash exécuterait sinon l'ancienne
+if [ "$1" != "--pulled" ]; then
+  as_service git pull
+  exec bin/update --pulled
+fi
 (
-  cd app;
+  cd app
   # Réappliquée à chaque mise à jour, pour corriger une machine mal configurée
-  bundle config set --local deployment true;
-  bundle config set --local without "development test";
-  bundle install
+  as_service bundle config set --local deployment true
+  as_service bundle config set --local without "development test"
+  as_service bundle install
 )
 # Copies root des scripts du sandbox
 bin/setup-sandbox
+bin/restart

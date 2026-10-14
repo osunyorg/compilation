@@ -8,6 +8,6 @@ Il n'y a donc ni `node_modules`, ni cache npm par site, et aucun script npm ou d
 
 Contraintes :
 
-- le site utilise le thème Osuny dans `themes/osuny`, dans une version qui fournit `pagefind.yml` ;
+- le site utilise le thème osuny dans `themes/osuny`, dans une version qui fournit `pagefind.yml` ;
 - le site n'a pas d'autres dépendances npm que le thème : les sites qui en ont continuent d'être compilés par leur propre CI ;
 - `toolchain/package.json` suit le `package.json` du thème : une dépendance ajoutée, retirée ou mise à jour dans le thème doit l'être aussi dans la toolchain (puis `npm install --package-lock-only` dans `toolchain/`).

@@ -4,14 +4,6 @@
 
 Ce référentiel doit être cloné sur la machine Kelmscott.
 
-```
-app/        interface web et réception des demandes de l'admin Osuny (Sinatra)
-bin/        administration de la machine, lancée à la main
-sandbox/    récupération et compilation des sites, qui exécutent le code des dépôts, sans droits
-sync/       synchronisation des sites compilés, seule à recevoir les secrets
-toolchain/  dépendances du thème, installées une fois et partagées par tous les builds
-```
-
 ## Documentation
 
 - [Installation](docs/installation.md)

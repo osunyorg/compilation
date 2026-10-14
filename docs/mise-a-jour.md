@@ -1,10 +1,7 @@
 # Mise à jour
 
 ```bash
-cd kelmscott
-git pull
-bin/update
-bin/restart
+~/kelmscott/bin/update
 ```
 
-`bin/update` réinstalle les copies root du sandbox. Lors de la première mise à jour qui l'ajoute, lancer aussi `bin/setup-sandbox` à la main : bash continue d'exécuter l'ancienne version de `bin/update`, remplacée pendant le `git pull`.
+`bin/update` récupère le code, puis se relance dans sa nouvelle version pour réinstaller les gems et les copies root du sandbox, et redémarre le service.

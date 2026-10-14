@@ -5,6 +5,18 @@
 set -e
 cd "$(dirname "$0")/.."
 
+# L'utilisateur du service est le propriétaire du dépôt : le script peut être lancé par un autre administrateur
+SERVICE_USER="$(stat -c %U .)"
+SERVICE_HOME="$(getent passwd "$SERVICE_USER" | cut -d: -f6)"
+# Exécute une commande sous l'utilisateur du service, avec ses outils mise
+as_service() {
+  if [ "$(id -un)" = "$SERVICE_USER" ]; then
+    "$SERVICE_HOME/.local/bin/mise" exec -- "$@"
+  else
+    sudo -u "$SERVICE_USER" -H "$SERVICE_HOME/.local/bin/mise" exec -- "$@"
+  fi
+}
+
 # Utilisateur des builds, sans shell ni droits
 if ! id kelmscott-build &> /dev/null; then
   sudo useradd --system --no-create-home --shell /usr/sbin/nologin kelmscott-build
@@ -12,7 +24,7 @@ fi
 
 # Dossiers des sites (écrits par les builds) et de l'état (logs, statuts, verrous, écrits par le service)
 sudo install -d -o root -g root -m 755 /srv/kelmscott /srv/kelmscott/sites
-sudo install -d -o "$USER" -g "$USER" -m 755 /srv/kelmscott/state
+sudo install -d -o "$SERVICE_USER" -g "$SERVICE_USER" -m 755 /srv/kelmscott/state
 
 # Scripts
 sudo install -o root -g root -m 755 sandbox/run /usr/local/sbin/kelmscott-sandbox
@@ -20,18 +32,18 @@ sudo install -d -o root -g root -m 755 /usr/local/lib/kelmscott /etc/kelmscott
 sudo install -o root -g root -m 755 sandbox/fetch sandbox/compile /usr/local/lib/kelmscott/
 
 # Toolchain : dépendances du thème, installées une fois pour tous les builds, en lecture seule
-(cd toolchain && npm ci --ignore-scripts --no-audit --no-fund)
+(cd toolchain && as_service npm ci --ignore-scripts --no-audit --no-fund)
 sudo rm -rf /usr/local/lib/kelmscott/toolchain
 sudo cp -a toolchain /usr/local/lib/kelmscott/toolchain
 sudo chown -R root:root /usr/local/lib/kelmscott/toolchain
 
 # Outils (node, hugo) installés par mise, accessibles en lecture seule dans le sandbox
 printf 'TOOLS_DIR=%q\nTOOLS_PATH=%q\n' \
-  "${MISE_DATA_DIR:-$HOME/.local/share/mise}/installs" \
-  "$(mise bin-paths | paste -sd: -)" \
+  "$SERVICE_HOME/.local/share/mise/installs" \
+  "$(as_service mise bin-paths | paste -sd: -)" \
   | sudo tee /etc/kelmscott/sandbox.env > /dev/null
 
 # L'utilisateur du service peut lancer le sandbox, et rien d'autre en root par ce biais
-echo "$USER ALL=(root) NOPASSWD: /usr/local/sbin/kelmscott-sandbox" | sudo tee /etc/sudoers.d/kelmscott > /dev/null
+echo "$SERVICE_USER ALL=(root) NOPASSWD: /usr/local/sbin/kelmscott-sandbox" | sudo tee /etc/sudoers.d/kelmscott > /dev/null
 sudo chmod 440 /etc/sudoers.d/kelmscott
 sudo visudo -cf /etc/sudoers.d/kelmscott
