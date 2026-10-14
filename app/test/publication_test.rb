@@ -148,6 +148,15 @@ class PublicationTest < KelmscottTest
     refute_includes log, 'Synchronisation simulée'
   end
 
+  # Une compilation qui ne produit pas de site ne doit pas vider le site en ligne
+  def test_refuses_site_without_index
+    publication.sandbox.public_files = ['style.css']
+    publication.run
+    assert_equal 'failure', status
+    assert_includes log, 'Site compilé incomplet : public/index.html manquant'
+    refute_includes log, 'Synchronisation simulée'
+  end
+
   def test_refuses_special_files
     publication.sandbox.public_fifos = ['bloque']
     publication.run

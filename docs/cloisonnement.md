@@ -4,6 +4,8 @@ La récupération et la compilation d'un site exécutent du code issu de son dé
 
 - le build ne voit que le dossier de son site : les autres sites, les logs, `/home` (donc les clés) sont masqués ;
 - il ne peut écrire que dans le dossier de son site, ni gagner de privilèges (pas de sudo, ni de setuid) ;
+- il ne voit que ses propres processus (`PrivatePIDs`) : les builds simultanés, sous le même utilisateur, ne peuvent pas s'atteindre ;
+- la compilation n'a pas de réseau (ni Hugo ni pagefind n'en ont besoin) : rien ne peut sortir, ni atteindre les services de la machine ;
 - ses ressources sont limitées (4 Go de mémoire, 2 CPU, 30 minutes), et ses processus sont tués à la fin ;
 - ses caches (Hugo…) sont propres au site : le dossier du site est son `HOME`.
 

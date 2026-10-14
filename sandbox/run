@@ -64,16 +64,23 @@ else
     --property=BindPaths="$site_dir"
     --setenv=HOME="$site_dir"
   )
+  # La compilation n'a pas besoin du réseau (ni Hugo ni pagefind) : pas d'exfiltration, ni d'accès aux services locaux
+  if [ "$command" = compile ]; then
+    specific+=(--property=PrivateNetwork=yes)
+  fi
   program=("$LIB/$command" "$site_dir/repository" "$argument")
 fi
 
 # Les autres sites, les logs et /home (donc les clés) sont masqués. Pas de gain de privilèges,
 # des ressources et une durée limitées. Les processus restants sont tués à la fin.
+# PrivatePIDs : chaque étape ne voit que ses propres processus. Les builds simultanés tournent sous le même
+# utilisateur : sans cela, l'un pourrait atteindre les fichiers d'un autre par /proc/<pid>/root.
 exec systemd-run --wait --pipe --collect --quiet \
   --uid="$user" --gid="$user" \
   "${specific[@]}" \
   --property=ProtectSystem=strict \
   --property=ProtectHome=tmpfs \
+  --property=PrivatePIDs=yes \
   --property=TemporaryFileSystem="$DATA:ro" \
   --property=BindReadOnlyPaths="$TOOLS_DIR" \
   --property=PrivateTmp=yes \

@@ -7,6 +7,13 @@ cd "$(dirname "$0")/../.."
 
 source bin/lib/as-service.sh
 
+# PrivatePIDs (sandbox/run) demande systemd 257 ou plus : sans lui, les builds simultanés ne sont pas isolés entre eux
+systemd_version="$(systemctl --version | head -1 | awk '{print $2}' | cut -d. -f1)"
+if [ "$systemd_version" -lt 257 ]; then
+  echo "systemd $systemd_version : la version 257 ou plus est nécessaire (Ubuntu 26.04)" >&2
+  exit 1
+fi
+
 # Utilisateurs des builds et des synchronisations, sans shell ni droits
 for user in kelmscott-build kelmscott-sync; do
   if ! id "$user" &> /dev/null; then

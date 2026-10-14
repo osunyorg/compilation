@@ -45,9 +45,9 @@ class Publication
     report.step('Compilation') { sandbox.compile } || error('Échec de la compilation')
   end
 
-  # Seuls des fichiers et des dossiers ordinaires sont mis en ligne : un lien symbolique publierait un fichier
-  # du serveur, et un fichier spécial (FIFO…) bloquerait la synchronisation
   def publishable
+    return error('Site compilé introuvable : public/ doit être un dossier') unless File.lstat(site.public_path).directory?
+    return error('Site compilé incomplet : public/index.html manquant') unless File.file?(File.join(site.public_path, 'index.html'))
     forbidden = Dir.glob('**/*', File::FNM_DOTMATCH, base: site.public_path).reject do |path|
       %w[file directory].include?(File.lstat(File.join(site.public_path, path)).ftype)
     end

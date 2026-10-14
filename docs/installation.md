@@ -16,7 +16,7 @@ toolchain/  dépendances du thème et dxfl, installées une fois et partagées e
 
 ## Prérequis
 
-- Une VM **Ubuntu 24.04 LTS** neuve, avec une IP fixe : les hébergeurs des sites peuvent la mettre en liste blanche.
+- Une VM **Ubuntu 26.04 LTS** neuve (systemd 257 ou plus, pour isoler les builds simultanés), avec une IP fixe : les hébergeurs des sites peuvent la mettre en liste blanche.
 - Un accès SSH avec l'utilisateur `ubuntu`, qui a les droits sudo.
 - Un nom de domaine (par exemple `kelmscott.osuny.org`) dont l'enregistrement DNS pointe vers l'IP de la VM.
 - De l'espace disque : chaque site garde son dépôt (sources et dernier commit) et sa compilation, soit quelques dizaines de Mo par site.

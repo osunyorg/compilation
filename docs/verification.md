@@ -85,9 +85,10 @@ echo "== écriture hors du site"; touch /etc/canary /srv/kelmscott/canary
 echo "== écriture dans /tmp"; touch /tmp/canary && echo "ok (privé)"
 echo "== toolchain en lecture seule"; touch node_modules/canary
 echo "== réseau"; curl -sI https://registry.npmjs.org | head -1
+echo "== autres builds"; ls -d /proc/[0-9]*/root/srv/kelmscott/sites/* 2>&1 | grep -v canary
 ```
 
-Lancer sa publication depuis l'admin Osuny, seul détenteur de la clé de signature, dans une console Rails (`bin/rails console`) :
+Pour que la ligne « autres builds » teste vraiment l'isolation, lancer juste avant la publication d'un autre site depuis l'admin, pour que les deux compilent en même temps. Puis lancer celle du canari depuis l'admin Osuny, seul détenteur de la clé de signature, dans une console Rails (`bin/rails console`) :
 
 ```ruby
 path = "/test/canary"
@@ -120,7 +121,8 @@ Attendu :
 | écriture hors du site | `Read-only file system` |
 | écriture dans /tmp | `ok (privé)` |
 | toolchain en lecture seule | `Read-only file system` |
-| réseau | `HTTP/2 200` |
+| réseau | rien (pas de réseau pendant la compilation) |
+| autres builds | rien, même si un autre site compile en même temps |
 
 La synchronisation échoue ensuite, faute de clés dxfl : c'est normal, et le badge de `test/canary` passe à `échec`, ce qui vérifie que les échecs remontent bien du sandbox.
 
