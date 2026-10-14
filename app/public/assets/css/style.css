@@ -2,14 +2,16 @@
   width: 200px
 }
 .logo .logo__osuny {
-  width: 83px;
   display: block;
   margin-bottom: 20px;
+  width: 83px;
 }
 pre {
   background: #111111;
   color: #EEEEEE;
-  padding: 20px;
   font-size: 14px;
   line-height: 120%;
+  overflow-wrap: anywhere;
+  padding: 20px;
+  white-space: pre-wrap;
 }
