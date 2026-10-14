@@ -1,25 +1,28 @@
 #!/bin/bash
-# Génère la paire de clés et le jeton de Kelmscott s'ils n'existent pas encore,
-# puis affiche les valeurs à renseigner dans la configuration de l'admin Osuny.
+# Génère la paire de clés de Kelmscott si elle n'existe pas encore, enregistre la clé publique
+# de signature de l'admin Osuny si elle est passée en argument, puis affiche la clé publique
+# à renseigner dans la configuration de l'admin.
+# Usage : bin/setup-keys [clé publique de signature de l'admin]
 set -e
 cd "$(dirname "$0")/../app"
 bundle exec ruby -e '
   require "rbnacl"
   require "base64"
-  require "securerandom"
 
   key_path = "config/kelmscott.key"
-  token_path = "config/kelmscott.token"
+  admin_key_path = "config/admin.pub"
 
   unless File.exist?(key_path)
     private_key = RbNaCl::PrivateKey.generate
     File.write(key_path, Base64.strict_encode64(private_key.to_bytes), perm: 0600)
   end
-  unless File.exist?(token_path)
-    File.write(token_path, SecureRandom.hex(32), perm: 0600)
+  if ARGV[0]
+    # Vérifie que la valeur est bien une clé publique Ed25519
+    RbNaCl::VerifyKey.new(Base64.strict_decode64(ARGV[0]))
+    File.write(admin_key_path, ARGV[0], perm: 0644)
   end
+  warn "Clé publique de l admin manquante : bin/setup-keys <clé>" unless File.exist?(admin_key_path)
 
   private_key = RbNaCl::PrivateKey.new(Base64.strict_decode64(File.read(key_path).strip))
   puts "KELMSCOTT_PUBLIC_KEY: #{Base64.strict_encode64(private_key.public_key.to_bytes)}"
-  puts "KELMSCOTT_TOKEN: #{File.read(token_path).strip}"
-'
+' "$@"

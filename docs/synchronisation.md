@@ -1,0 +1,51 @@
+# Synchronisation
+
+Les scripts de synchronisation sont dans Kelmscott (`sync/`), et non dans les dépôts des sites : seul du code maîtrisé par Kelmscott a accès aux secrets déchiffrés.
+
+Après une compilation réussie, Kelmscott lance `sync/<sync_method>` avec le chemin du dépôt, et uniquement les variables de la méthode choisie dans son environnement. Le dossier envoyé est toujours `public/` ; la publication est refusée s'il contient un lien symbolique. Aucun secret n'est écrit sur le disque. La sortie est ajoutée au log du site.
+
+## dxfl
+
+Envoi vers Deuxfleurs avec [dxfl](https://git.deuxfleurs.fr/Deuxfleurs/dxfl). Le fichier `deuxfleurs.toml` du dépôt (redirections, en-têtes) est pris en compte.
+
+Variables, à récupérer dans l'onglet S3 du Guichet Deuxfleurs :
+
+- `DXFL_BUCKET`
+- `AWS_ACCESS_KEY_ID`
+- `AWS_SECRET_ACCESS_KEY` (secret)
+
+## rsync
+
+Copie incrémentale avec rsync sur SSH. La clé publique de l'hôte distant est acceptée à la première connexion, puis vérifiée.
+
+Variables :
+
+- `RSYNC_HOST`
+- `RSYNC_PORT` (22 par défaut)
+- `RSYNC_USER`
+- `RSYNC_PATH`
+- `RSYNC_SSH_PRIVATE_KEY` (secret)
+
+## sftp
+
+Envoi par SFTP avec mot de passe, via rclone.
+
+Variables :
+
+- `SFTP_HOST`
+- `SFTP_PORT` (22 par défaut)
+- `SFTP_USER`
+- `SFTP_PASSWORD` (secret)
+- `SFTP_PATH`
+
+## s3
+
+Envoi vers un bucket compatible S3 (AWS, Scaleway, OVH, Garage…), via rclone.
+
+Variables :
+
+- `S3_BUCKET`
+- `S3_ENDPOINT` (vide pour AWS)
+- `S3_REGION`
+- `AWS_ACCESS_KEY_ID`
+- `AWS_SECRET_ACCESS_KEY` (secret)

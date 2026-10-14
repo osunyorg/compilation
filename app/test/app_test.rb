@@ -12,14 +12,16 @@ class AppTest < KelmscottTest
 
   def setup
     super
-    @public_key = configure_keys
+    @public_key, @signing_key = configure_keys
     PUBLICATIONS.clear
   end
 
-  def publish(body, token: TOKEN, content_type: 'application/json')
-    header 'Authorization', "Bearer #{token}"
+  def publish(body, path: '/universite/site', content_type: 'application/json', timestamp: Time.now.to_i, signing_key: @signing_key, signed_body: nil)
+    body = body.is_a?(String) ? body : body.to_json
     header 'Content-Type', content_type
-    post '/universite/site', body.is_a?(String) ? body : body.to_json
+    header 'X-Kelmscott-Timestamp', timestamp.to_s
+    header 'X-Kelmscott-Signature', sign(signing_key, timestamp, path, signed_body || body)
+    post path, body
   end
 
   def valid_body
@@ -137,9 +139,31 @@ class AppTest < KelmscottTest
     assert_equal 503, last_response.status
   end
 
-  def test_publish_without_token
-    publish(valid_body, token: 'mauvais')
+  def test_publish_without_signature
+    header 'Content-Type', 'application/json'
+    post '/universite/site', valid_body.to_json
     assert_equal 401, last_response.status
+  end
+
+  def test_publish_signed_by_another_key
+    publish(valid_body, signing_key: RbNaCl::SigningKey.generate)
+    assert_equal 401, last_response.status
+  end
+
+  def test_publish_tampered_body
+    publish(valid_body.merge(git_url: 'https://github.com/pirate/site.git'), signed_body: valid_body.to_json)
+    assert_equal 401, last_response.status
+  end
+
+  def test_publish_expired
+    publish(valid_body, timestamp: Time.now.to_i - Helpers::SIGNATURE_MAX_AGE - 1)
+    assert_equal 401, last_response.status
+  end
+
+  def test_publish_without_admin_key
+    FileUtils.rm_f(Helpers::ADMIN_KEY_PATH)
+    publish(valid_body)
+    assert_equal 503, last_response.status
   end
 
   def test_publish_requires_json
@@ -153,8 +177,10 @@ class AppTest < KelmscottTest
   end
 
   def test_publish_invalid_git_url
-    publish(valid_body.merge(git_url: 'file:///etc'))
-    assert_equal 'Invalid git_url', last_response.body
+    ['file:///etc', 'https://example.org/site.git', 'https://user:pass@github.com/osunyorg/site.git'].each do |git_url|
+      publish(valid_body.merge(git_url: git_url))
+      assert_equal 'Invalid git_url', last_response.body
+    end
   end
 
   def test_publish_invalid_sync_method
@@ -173,9 +199,7 @@ class AppTest < KelmscottTest
   end
 
   def test_publish_invalid_site
-    header 'Authorization', "Bearer #{TOKEN}"
-    header 'Content-Type', 'application/json'
-    post '/universite/..site', valid_body.to_json
+    publish(valid_body, path: '/universite/..site')
     assert_equal 'Invalid site', last_response.body
   end
 end

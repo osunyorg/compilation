@@ -17,25 +17,31 @@ module TestPaths
   replace Publication, :SITES_PATH, File.join(ROOT, 'sites')
   replace Publication, :STATE_PATH, File.join(ROOT, 'state')
   replace Helpers, :PRIVATE_KEY_PATH, File.join(ROOT, 'kelmscott.key')
-  replace Helpers, :TOKEN_PATH, File.join(ROOT, 'kelmscott.token')
+  replace Helpers, :ADMIN_KEY_PATH, File.join(ROOT, 'admin.pub')
 
   Minitest.after_run { FileUtils.rm_rf(ROOT) }
 end
 
 class KelmscottTest < Minitest::Test
-  TOKEN = 'jeton-de-test'
 
   def setup
     FileUtils.rm_rf(Dir[File.join(TestPaths::ROOT, '*')])
     FileUtils.mkdir_p([Publication::SITES_PATH, Publication::STATE_PATH])
   end
 
-  # Crée la paire de clés et le jeton, comme bin/setup-keys, et renvoie la clé publique
+  # Crée la paire de clés de Kelmscott et enregistre la clé publique de signature de l'admin,
+  # comme bin/setup-keys, et renvoie la clé publique de Kelmscott et la clé de signature de l'admin
   def configure_keys
     private_key = RbNaCl::PrivateKey.generate
+    signing_key = RbNaCl::SigningKey.generate
     File.write(Helpers::PRIVATE_KEY_PATH, Base64.strict_encode64(private_key.to_bytes))
-    File.write(Helpers::TOKEN_PATH, TOKEN)
-    private_key.public_key
+    File.write(Helpers::ADMIN_KEY_PATH, Base64.strict_encode64(signing_key.verify_key.to_bytes))
+    [private_key.public_key, signing_key]
+  end
+
+  # Signe une demande comme le fait l'admin Osuny
+  def sign(signing_key, timestamp, path, body)
+    Base64.strict_encode64(signing_key.sign("#{timestamp}\nPOST #{path}\n#{body}"))
   end
 
   # Chiffre un secret comme le fait l'admin Osuny

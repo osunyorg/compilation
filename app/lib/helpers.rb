@@ -1,10 +1,16 @@
 require 'base64'
 require 'rbnacl'
+require 'uri'
 
 module Helpers
   # Générés par bin/setup-keys, jamais versionnés
   PRIVATE_KEY_PATH = File.expand_path('../config/kelmscott.key', __dir__)
-  TOKEN_PATH = File.expand_path('../config/kelmscott.token', __dir__)
+  # Clé publique de signature de l'admin Osuny, pour vérifier l'origine des demandes
+  ADMIN_KEY_PATH = File.expand_path('../config/admin.pub', __dir__)
+  # Au-delà, une demande signée est refusée, pour limiter le rejeu
+  SIGNATURE_MAX_AGE = 300
+  # Forges depuis lesquelles un dépôt peut être récupéré
+  GIT_HOSTS = %w[github.com gitlab.com].freeze
 
   def directories_in(path)
     return [] unless File.directory?(path)
@@ -66,14 +72,26 @@ module Helpers
   end
 
   def configured?
-    File.exist?(PRIVATE_KEY_PATH) && File.exist?(TOKEN_PATH)
+    File.exist?(PRIVATE_KEY_PATH) && File.exist?(ADMIN_KEY_PATH)
   end
 
-  def authorized?
-    token = read_config(TOKEN_PATH)
-    return false if token.to_s.empty?
-    provided = request.env['HTTP_AUTHORIZATION'].to_s.delete_prefix('Bearer ')
-    Rack::Utils.secure_compare(token, provided)
+  # La demande est signée par l'admin (Ed25519) : horodatage, méthode, chemin et corps.
+  # Kelmscott n'a que la clé publique, il ne peut donc pas fabriquer de demande valide.
+  def signed?(body)
+    timestamp = request.env['HTTP_X_KELMSCOTT_TIMESTAMP'].to_s
+    return false unless timestamp.match?(/\A\d+\z/) && (Time.now.to_i - timestamp.to_i).abs <= SIGNATURE_MAX_AGE
+    signature = Base64.strict_decode64(request.env['HTTP_X_KELMSCOTT_SIGNATURE'].to_s)
+    verify_key = RbNaCl::VerifyKey.new(Base64.strict_decode64(read_config(ADMIN_KEY_PATH)))
+    verify_key.verify(signature, "#{timestamp}\n#{request.request_method} #{request.path_info}\n#{body}")
+  rescue ArgumentError, RbNaCl::CryptoError
+    false
+  end
+
+  def valid_git_url?(git_url)
+    uri = URI.parse(git_url)
+    uri.scheme == 'https' && GIT_HOSTS.include?(uri.host) && uri.userinfo.nil?
+  rescue URI::InvalidURIError
+    false
   end
 
   # Les secrets sont chiffrés par l'admin avec la clé publique (sealed box libsodium)

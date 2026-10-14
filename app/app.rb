@@ -43,7 +43,8 @@ end
 
 post '/:university/:site' do
   halt 503, 'Kelmscott keys are not configured' unless configured?
-  halt 401, 'Unauthorized' unless authorized?
+  body = request.body.read
+  halt 401, 'Unauthorized' unless signed?(body)
 
   university = params[:university]
   site = params[:site]
@@ -51,11 +52,11 @@ post '/:university/:site' do
   halt 400, 'Invalid site' unless valid_name?(site)
 
   halt 415, 'Content-Type must be application/json' unless request.media_type == 'application/json'
-  payload = JSON.parse(request.body.read) rescue halt(400, 'Invalid JSON')
+  payload = JSON.parse(body) rescue halt(400, 'Invalid JSON')
   halt 400, 'Invalid JSON' unless payload.is_a?(Hash)
 
   git_url = payload['git_url'].to_s
-  halt 400, 'Invalid git_url' unless git_url.start_with?('https://')
+  halt 400, 'Invalid git_url' unless valid_git_url?(git_url)
 
   sync_method = payload['sync_method'].to_s
   halt 400, 'Invalid sync_method' unless Publication::KEYS_BY_SYNC_METHOD.key?(sync_method)

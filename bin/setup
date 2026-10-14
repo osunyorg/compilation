@@ -1,4 +1,6 @@
 #!/bin/bash
+set -e
+cd "$(dirname "$0")/.."
 
 # Build tools needed for Ruby (compiled by mise) and rbnacl
 sudo apt install -y build-essential curl libsodium-dev libssl-dev libyaml-dev zlib1g-dev libffi-dev libreadline-dev

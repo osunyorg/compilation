@@ -71,6 +71,6 @@ yarn-debug.log*
 
 .DS_Store
 
-# Clé privée et jeton de Kelmscott (bin/setup-keys)
+# Clés de Kelmscott (bin/setup-keys)
 /app/config/kelmscott.key
-/app/config/kelmscott.token
+/app/config/admin.pub
