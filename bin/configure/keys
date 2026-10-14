@@ -24,8 +24,18 @@ as_service bundle exec ruby -e '
     RbNaCl::VerifyKey.new(Base64.strict_decode64(ARGV[0]))
     File.write(admin_key_path, ARGV[0], perm: 0644)
   end
-  warn "Clé publique de l admin manquante : bin/configure/keys <clé>" unless File.exist?(admin_key_path)
+  unless File.exist?(admin_key_path)
+    warn "Clé publique de l’admin manquante : générer la clé de signature dans l’admin (bin/rails app:kelmscott:signing_key), puis relancer ~/kelmscott/bin/configure/keys <clé publique>"
+  end
 
   private_key = RbNaCl::PrivateKey.new(Base64.strict_decode64(File.read(key_path).strip))
-  puts "KELMSCOTT_PUBLIC_KEY: #{Base64.strict_encode64(private_key.public_key.to_bytes)}"
+  puts <<~TEXT
+
+    Dans la configuration de l’admin (config/application.yml ou variables d’environnement) :
+
+    KELMSCOTT_PUBLIC_KEY: #{Base64.strict_encode64(private_key.public_key.to_bytes)}
+
+    Clé privée de Kelmscott à sauvegarder hors de la machine : ~/kelmscott/app/config/kelmscott.key
+
+  TEXT
 ' "$@"

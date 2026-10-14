@@ -61,7 +61,7 @@ sudo systemctl reload nginx
 
 ## 4. Clés de chiffrement
 
-Générer d'abord la clé de signature dans l'admin Osuny (voir [Clés de chiffrement](cles.md)), puis :
+Générer d'abord la clé de signature dans l'admin Osuny (`bin/rails app:kelmscott:signing_key`, voir [Clés de chiffrement](cles.md)), puis :
 
 ```bash
 ~/kelmscott/bin/configure/keys <clé publique de signature de l'admin>

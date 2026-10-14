@@ -8,21 +8,22 @@ En sens inverse, l'admin **signe** ses demandes avec sa propre clé privée ([Ed
 
 ## Création
 
-### 1. Clé de signature, dans l'admin Osuny
+### 1. Clé de signature de l'admin
+
+Dans l'admin Osuny :
 
 ```bash
-bin/rails runner 'k = RbNaCl::SigningKey.generate; puts "KELMSCOTT_SIGNING_KEY: #{Base64.strict_encode64(k.to_bytes)}"; puts "Clé publique : #{Base64.strict_encode64(k.verify_key.to_bytes)}"'
+bin/rails app:kelmscott:signing_key
 ```
 
-La commande affiche la paire de clés sans l'enregistrer.
+La tâche affiche, sans rien enregistrer :
 
-### 2. Configuration de l'admin
+- `KELMSCOTT_SIGNING_KEY`, à mettre dans la configuration de l'admin (`config/application.yml` ou variables d'environnement), jamais versionnée ni copiée sur Kelmscott ;
+- la commande à lancer sur Kelmscott, avec la clé publique correspondante.
 
-Copier `KELMSCOTT_SIGNING_KEY` dans la configuration de l'admin, comme ses autres secrets : `config/application.yml` en local, variables d'environnement en production. Cette valeur ne doit jamais être versionnée, ni copiée sur Kelmscott.
+### 2. Clés de Kelmscott
 
-### 3. Clés de Kelmscott
-
-Sur Kelmscott, avec la clé publique affichée à l'étape 1 :
+Sur Kelmscott, la commande affichée à l'étape 1 :
 
 ```bash
 ~/kelmscott/bin/configure/keys <clé publique de signature de l'admin>
@@ -35,14 +36,12 @@ Le script crée la clé privée de Kelmscott si elle n'existe pas encore, et enr
 
 Ces fichiers ne sont pas versionnés. Le script peut être relancé sans risque : il ne remplace jamais la clé privée.
 
-### 4. Clé publique de Kelmscott, dans l'admin
-
-Le script affiche la clé publique de Kelmscott, à ajouter à la configuration de l'admin. Celle-ci contient alors :
+Il affiche `KELMSCOTT_PUBLIC_KEY`, à mettre dans la configuration de l'admin. Celle-ci contient alors :
 
 ```yaml
 KELMSCOTT_URL: https://kelmscott.osuny.org
-KELMSCOTT_PUBLIC_KEY: <clé publique de Kelmscott, étape 3>
-KELMSCOTT_SIGNING_KEY: <clé de signature de l'admin, étape 1>
+KELMSCOTT_PUBLIC_KEY: <affichée par configure/keys>
+KELMSCOTT_SIGNING_KEY: <affichée par app:kelmscott:signing_key>
 ```
 
 `KELMSCOTT_URL` doit être en `https://`, y compris en développement : l'admin refuse d'envoyer une demande autrement, car les paramètres non secrets (hôtes, utilisateurs, chemins) ne sont protégés que par TLS pendant le transport.
@@ -58,4 +57,4 @@ rm ~/kelmscott/app/config/kelmscott.key
 ~/kelmscott/bin/configure/keys
 ```
 
-La clé de signature de l'admin n'a pas besoin d'être sauvegardée : elle ne protège aucun secret enregistré. Si elle est perdue ou compromise, elle se renouvelle sans conséquence sur les secrets : générer une nouvelle clé dans l'admin, mettre à jour `KELMSCOTT_SIGNING_KEY`, puis lancer `~/kelmscott/bin/configure/keys <nouvelle clé publique>` sur Kelmscott.
+La clé de signature de l'admin n'a pas besoin d'être sauvegardée : elle ne protège aucun secret enregistré. Si elle est perdue ou compromise, elle se renouvelle sans conséquence sur les secrets, en refaisant les étapes 1 et 2.

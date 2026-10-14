@@ -85,19 +85,19 @@ echo "== toolchain en lecture seule"; touch node_modules/canary
 echo "== réseau"; curl -sI https://registry.npmjs.org | head -1
 ```
 
-Lancer sa publication depuis l'admin Osuny, seul détenteur de la clé de signature :
+Lancer sa publication depuis l'admin Osuny, seul détenteur de la clé de signature, dans une console Rails (`bin/rails console`) :
 
-```bash
-bin/rails runner '
-  path = "/test/canary"
-  body = { git_url: "https://github.com/<compte>/kelmscott-canary.git", sync_method: "dxfl", variables: { DXFL_BUCKET: "test" } }.to_json
-  timestamp = Time.now.to_i.to_s
-  signing_key = RbNaCl::SigningKey.new(Base64.strict_decode64(ENV["KELMSCOTT_SIGNING_KEY"]))
-  signature = Base64.strict_encode64(signing_key.sign("#{timestamp}\nPOST #{path}\n#{body}"))
-  response = Faraday.post("#{ENV["KELMSCOTT_URL"]}#{path}", body, "Content-Type" => "application/json", "X-Kelmscott-Timestamp" => timestamp, "X-Kelmscott-Signature" => signature)
-  puts response.status
-'
+```ruby
+path = "/test/canary"
+body = { git_url: "https://github.com/<compte>/kelmscott-canary.git", sync_method: "dxfl", variables: { DXFL_BUCKET: "test" } }.to_json
+timestamp = Time.now.to_i.to_s
+signing_key = RbNaCl::SigningKey.new(Base64.strict_decode64(ENV["KELMSCOTT_SIGNING_KEY"]))
+signature = Base64.strict_encode64(signing_key.sign("#{timestamp}\nPOST #{path}\n#{body}"))
+response = Faraday.post("#{ENV["KELMSCOTT_URL"]}#{path}", body, "Content-Type" => "application/json", "X-Kelmscott-Timestamp" => timestamp, "X-Kelmscott-Signature" => signature)
+response.status
 ```
+
+Attendu : `202`.
 
 Puis lire le résultat sur la VM, écrit dans le dépôt :
 
