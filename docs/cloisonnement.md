@@ -9,7 +9,7 @@ La récupération et la compilation d'un site exécutent du code issu de son dé
 
 La synchronisation, seule à recevoir les secrets déchiffrés, tourne hors sandbox, sous l'utilisateur du service, avec des scripts maîtrisés par Kelmscott.
 
-L'utilisateur du service ne peut lancer en root que `/usr/local/sbin/kelmscott-sandbox`, qui vérifie ses arguments. Les scripts exécutés par root ou dans le sandbox sont des copies appartenant à root, installées par `bin/setup-sandbox` (lancé par `bin/setup` et `bin/update`).
+L'utilisateur du service ne peut lancer en root que `/usr/local/sbin/kelmscott-sandbox`, qui vérifie ses arguments. Les scripts exécutés par root ou dans le sandbox sont des copies appartenant à root, installées par `bin/steps/sandbox` (lancé par `bin/setup` et `bin/update`).
 
 ```
 /srv/kelmscott/

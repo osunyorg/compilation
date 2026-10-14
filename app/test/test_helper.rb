@@ -30,7 +30,7 @@ class KelmscottTest < Minitest::Test
   end
 
   # Crée la paire de clés de Kelmscott et enregistre la clé publique de signature de l'admin,
-  # comme bin/setup-keys, et renvoie la clé publique de Kelmscott et la clé de signature de l'admin
+  # comme bin/configure/keys, et renvoie la clé publique de Kelmscott et la clé de signature de l'admin
   def configure_keys
     private_key = RbNaCl::PrivateKey.generate
     signing_key = RbNaCl::SigningKey.generate
@@ -50,11 +50,12 @@ class KelmscottTest < Minitest::Test
   end
 
   def write_state(university, site, extension, content)
-    FileUtils.mkdir_p(File.join(Publication::STATE_PATH, university))
-    File.write(File.join(Publication::STATE_PATH, university, "#{site}.#{extension}"), content)
+    path = Publication.state_file(university, site, extension)
+    FileUtils.mkdir_p(File.dirname(path))
+    File.write(path, content)
   end
 
   def read_state(university, site, extension)
-    File.read(File.join(Publication::STATE_PATH, university, "#{site}.#{extension}"), encoding: 'UTF-8')
+    File.read(Publication.state_file(university, site, extension), encoding: 'UTF-8')
   end
 end

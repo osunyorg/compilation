@@ -73,6 +73,6 @@ yarn-debug.log*
 
 .DS_Store
 
-# Clés de Kelmscott (bin/setup-keys)
+# Clés de Kelmscott (bin/configure/keys)
 /app/config/kelmscott.key
 /app/config/admin.pub

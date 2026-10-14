@@ -2,10 +2,13 @@
 # Génère la paire de clés de Kelmscott si elle n'existe pas encore, enregistre la clé publique
 # de signature de l'admin Osuny si elle est passée en argument, puis affiche la clé publique
 # à renseigner dans la configuration de l'admin.
-# Usage : bin/setup-keys [clé publique de signature de l'admin]
+# Usage : bin/configure/keys [clé publique de signature de l'admin]
 set -e
-cd "$(dirname "$0")/../app"
-bundle exec ruby -e '
+cd "$(dirname "$0")/../.."
+source bin/lib/as-service.sh
+cd app
+# Sous l'utilisateur du service, seul à devoir lire la clé privée
+as_service bundle exec ruby -e '
   require "rbnacl"
   require "base64"
 
@@ -21,7 +24,7 @@ bundle exec ruby -e '
     RbNaCl::VerifyKey.new(Base64.strict_decode64(ARGV[0]))
     File.write(admin_key_path, ARGV[0], perm: 0644)
   end
-  warn "Clé publique de l admin manquante : bin/setup-keys <clé>" unless File.exist?(admin_key_path)
+  warn "Clé publique de l admin manquante : bin/configure/keys <clé>" unless File.exist?(admin_key_path)
 
   private_key = RbNaCl::PrivateKey.new(Base64.strict_decode64(File.read(key_path).strip))
   puts "KELMSCOTT_PUBLIC_KEY: #{Base64.strict_encode64(private_key.public_key.to_bytes)}"

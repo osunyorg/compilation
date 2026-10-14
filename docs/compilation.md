@@ -1,6 +1,6 @@
 # Compilation
 
-Kelmscott compile les sites lui-même, sans yarn ni script du thème, avec une **toolchain partagée** (`toolchain/`) : les dépendances npm du thème (PostCSS, cssnano, leaflet…) et pagefind, installées une seule fois avec npm par `bin/setup-sandbox` dans `/usr/local/lib/kelmscott/toolchain`, en lecture seule pour les builds.
+Kelmscott compile les sites lui-même, sans yarn ni script du thème, avec une **toolchain partagée** (`toolchain/`) : les dépendances npm du thème (PostCSS, cssnano, leaflet…) et pagefind, installées une seule fois avec npm par `bin/steps/sandbox` dans `/usr/local/lib/kelmscott/toolchain`, en lecture seule pour les builds.
 
 `sandbox/compile` remplace le `node_modules` du site par un lien vers la toolchain, lance `hugo --minify`, puis pagefind depuis le dossier du thème : sa configuration (dossier du site, pages indexées, sélecteurs exclus) est dans le `pagefind.yml` du thème.
 

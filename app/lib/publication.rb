@@ -32,6 +32,11 @@ class Publication
                       :durations,
                       :started_at
 
+  # Fichier d'état d'un site (log, status, size, lock), lu aussi par l'interface web
+  def self.state_file(university, site, extension)
+    File.join(STATE_PATH, university, "#{site}.#{extension}")
+  end
+
   def initialize(university, site, git_url, sync_method, environment)
     @university = university
     @site = site
@@ -62,27 +67,24 @@ class Publication
     @repository_path ||= File.join(site_path, 'repository')
   end
 
-  def state_path
-    @state_path ||= File.join(STATE_PATH, university)
-  end
-
   def log_path
-    @log_path ||= File.join(state_path, "#{site}.log")
+    @log_path ||= self.class.state_file(university, site, 'log')
   end
 
   def status_path
-    @status_path ||= File.join(state_path, "#{site}.status")
+    @status_path ||= self.class.state_file(university, site, 'status')
   end
 
   # Espace disque du site, additionné sur l'accueil
   def size_path
-    @size_path ||= File.join(state_path, "#{site}.size")
+    @size_path ||= self.class.state_file(university, site, 'size')
   end
 
   # Un seul build à la fois par site, y compris entre workers Puma
   def lock
-    FileUtils.mkdir_p(state_path)
-    File.open(File.join(state_path, "#{site}.lock"), File::CREAT) do |file|
+    lock_path = self.class.state_file(university, site, 'lock')
+    FileUtils.mkdir_p(File.dirname(lock_path))
+    File.open(lock_path, File::CREAT) do |file|
       file.flock(File::LOCK_EX)
       yield
     end

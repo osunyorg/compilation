@@ -3,7 +3,7 @@ require 'rbnacl'
 require 'uri'
 
 module Helpers
-  # Générés par bin/setup-keys, jamais versionnés
+  # Générés par bin/configure/keys, jamais versionnés
   PRIVATE_KEY_PATH = File.expand_path('../config/kelmscott.key', __dir__)
   # Clé publique de signature de l'admin Osuny, pour vérifier l'origine des demandes
   ADMIN_KEY_PATH = File.expand_path('../config/admin.pub', __dir__)
@@ -25,7 +25,7 @@ module Helpers
   end
 
   def get_logs(university, site)
-    path = File.join(Publication::STATE_PATH, university, "#{site}.log")
+    path = Publication.state_file(university, site, 'log')
     return unless File.exist? path
     # Explicite : sous systemd, sans LANG, Ruby lirait le fichier en US-ASCII
     File.read(path, encoding: 'UTF-8').scrub
@@ -33,7 +33,7 @@ module Helpers
 
   # État de la dernière publication, écrit par Publication
   def get_status(university, site)
-    path = File.join(Publication::STATE_PATH, university, "#{site}.status")
+    path = Publication.state_file(university, site, 'status')
     File.exist?(path) ? File.read(path).strip : 'unknown'
   end
 

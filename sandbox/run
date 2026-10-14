@@ -2,7 +2,7 @@
 # Lance une étape du build (fetch ou compile) d'un site dans un sandbox systemd,
 # sous l'utilisateur kelmscott-build, sans droits.
 #
-# Exécuté par root : bin/setup-sandbox l'installe dans /usr/local/sbin/kelmscott-sandbox,
+# Exécuté par root : bin/steps/sandbox l'installe dans /usr/local/sbin/kelmscott-sandbox,
 # seul programme que l'utilisateur du service peut lancer avec sudo.
 # Il ne fait confiance à aucun de ses arguments.
 #
@@ -12,7 +12,7 @@ set -euo pipefail
 
 DATA=/srv/kelmscott
 BUILD_USER=kelmscott-build
-# Outils installés par mise (TOOLS_DIR, TOOLS_PATH), écrit par bin/setup-sandbox
+# Outils installés par mise (TOOLS_DIR, TOOLS_PATH), écrit par bin/steps/sandbox
 source /etc/kelmscott/sandbox.env
 
 command="${1:-}"

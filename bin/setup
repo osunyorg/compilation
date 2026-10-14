@@ -23,13 +23,7 @@ mise use -g node@26
 
 # Sinatra
 ## Build the app
-(
-  cd app;
-  # Config locale (app/.bundle/config) : sans les gems de développement et de test
-  bundle config set --local deployment true;
-  bundle config set --local without "development test";
-  bundle install
-)
+bin/steps/app
 ## Install Nginx reverse proxy
 sudo apt install -y nginx
 if [ ! -f "/etc/nginx/sites-available/kelmscott.conf" ]; then
@@ -46,4 +40,4 @@ if [ ! -f "/etc/systemd/system/kelmscott-puma.service" ]; then
   sudo systemctl enable kelmscott-puma.service
 fi
 ## Sandbox des builds
-bin/setup-sandbox
+bin/steps/sandbox

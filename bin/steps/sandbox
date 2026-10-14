@@ -3,19 +3,9 @@
 # Les scripts exécutés par root ou dans le sandbox sont des copies appartenant à root,
 # que l'utilisateur du service ne peut pas modifier.
 set -e
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
-# L'utilisateur du service est le propriétaire du dépôt : le script peut être lancé par un autre administrateur
-SERVICE_USER="$(stat -c %U .)"
-SERVICE_HOME="$(getent passwd "$SERVICE_USER" | cut -d: -f6)"
-# Exécute une commande sous l'utilisateur du service, avec ses outils mise
-as_service() {
-  if [ "$(id -un)" = "$SERVICE_USER" ]; then
-    "$SERVICE_HOME/.local/bin/mise" exec -- "$@"
-  else
-    sudo -u "$SERVICE_USER" -H "$SERVICE_HOME/.local/bin/mise" exec -- "$@"
-  fi
-}
+source bin/lib/as-service.sh
 
 # Utilisateur des builds, sans shell ni droits
 if ! id kelmscott-build &> /dev/null; then

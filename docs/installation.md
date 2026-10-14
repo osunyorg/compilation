@@ -3,6 +3,12 @@
 ```
 app/        interface web et réception des demandes de l'admin Osuny (Sinatra)
 bin/        administration de la machine, lancée à la main
+  setup       installation complète
+  update      mise à jour
+  configure/  clés et HTTPS
+  service/    démarrage et redémarrage du service
+  steps/      étapes lancées par setup et update (gems, sandbox)
+  lib/        fonctions communes aux scripts
 sandbox/    récupération et compilation des sites, qui exécutent le code des dépôts, sans droits
 sync/       synchronisation des sites compilés, seule à recevoir les secrets
 toolchain/  dépendances du thème, installées une fois et partagées par tous les builds
@@ -40,7 +46,7 @@ git clone https://github.com/osunyorg/kelmscott.git ~/kelmscott
 - les paquets système (compilation de Ruby, libsodium, rsync, rclone, nginx) ;
 - Ruby, Node et Hugo, via mise ;
 - l'application Sinatra, nginx en reverse proxy, et le service `kelmscott-puma` ;
-- le sandbox des builds (`bin/setup-sandbox`, voir [Cloisonnement des builds](cloisonnement.md)).
+- le sandbox des builds (`bin/steps/sandbox`, voir [Cloisonnement des builds](cloisonnement.md)).
 
 Il faut ensuite ouvrir une nouvelle session SSH, pour que mise soit actif dans le shell.
 
@@ -50,7 +56,7 @@ Remplacer `server_name` par le domaine de la VM dans `/etc/nginx/sites-available
 
 ```bash
 sudo systemctl reload nginx
-~/kelmscott/bin/setup-ssl
+~/kelmscott/bin/configure/ssl
 ```
 
 ## 4. Clés de chiffrement
@@ -58,7 +64,7 @@ sudo systemctl reload nginx
 Générer d'abord la clé de signature dans l'admin Osuny (voir [Clés de chiffrement](cles.md)), puis :
 
 ```bash
-~/kelmscott/bin/setup-keys <clé publique de signature de l'admin>
+~/kelmscott/bin/configure/keys <clé publique de signature de l'admin>
 ```
 
 Reporter la clé publique affichée dans la configuration de l'admin Osuny, et sauvegarder la clé privée hors de la machine (voir [Clés de chiffrement](cles.md)).
@@ -66,7 +72,7 @@ Reporter la clé publique affichée dans la configuration de l'admin Osuny, et s
 ## 5. Démarrage
 
 ```bash
-~/kelmscott/bin/start
+~/kelmscott/bin/service/start
 ```
 
 ## 6. Restriction de sudo (recommandé)

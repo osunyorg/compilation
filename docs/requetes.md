@@ -33,6 +33,6 @@ Réponses :
 | 400 | Paramètres invalides, ou secret impossible à déchiffrer (mauvaise clé publique dans l'admin) |
 | 401 | Signature absente, invalide ou expirée |
 | 415 | Le corps n'est pas en `application/json` |
-| 503 | Les clés n'ont pas été configurées (`bin/setup-keys`) |
+| 503 | Les clés n'ont pas été configurées (`bin/configure/keys`) |
 
 Les compilations d'un même site sont exécutées l'une après l'autre. Les secrets ne sont pas transmis à la compilation (Hugo et le thème exécutent du code issu du dépôt) ; ils sont utilisés uniquement lors de la synchronisation.
