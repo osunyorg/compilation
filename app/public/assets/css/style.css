@@ -15,3 +15,7 @@ pre {
   padding: 20px;
   white-space: pre-wrap;
 }
+.block-chapter p {
+  columns: 450px;
+  column-gap: 40px;
+}
