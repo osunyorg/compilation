@@ -4,3 +4,5 @@ git pull
   cd app;
   bundle install
 )
+# Copies root des scripts du sandbox
+bin/setup-sandbox

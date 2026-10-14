@@ -68,8 +68,6 @@ yarn-debug.log*
 !/storage/.keep
 /public/uploads
 
-/repositories/*
-!/repositories/.keep
 
 .DS_Store
 

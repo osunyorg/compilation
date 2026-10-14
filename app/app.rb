@@ -8,14 +8,14 @@ helpers Helpers
 
 get '/' do
   @title = 'Kelmscott'
-  @universities = directories_in(Publication::REPOSITORIES_PATH)
+  @universities = directories_in(Publication::SITES_PATH)
   erb :index
 end
 
 get '/:university' do
   @university = params[:university]
   @title = @university
-  path = File.join(Publication::REPOSITORIES_PATH, @university)
+  path = File.join(Publication::SITES_PATH, @university)
   @sites = directories_in(path)
   erb :university
 end

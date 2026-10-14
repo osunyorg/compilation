@@ -1,0 +1,71 @@
+#!/bin/bash
+# Lance une étape du build (fetch ou compile) d'un site dans un sandbox systemd,
+# sous l'utilisateur kelmscott-build, sans droits.
+#
+# Exécuté par root : bin/setup-sandbox l'installe dans /usr/local/sbin/kelmscott-sandbox,
+# seul programme que l'utilisateur du service peut lancer avec sudo.
+# Il ne fait confiance à aucun de ses arguments.
+#
+# Usage : kelmscott-sandbox fetch UNIVERSITY SITE GIT_URL
+#         kelmscott-sandbox compile UNIVERSITY SITE
+set -euo pipefail
+
+DATA=/srv/kelmscott
+BUILD_USER=kelmscott-build
+# Outils installés par mise (TOOLS_DIR, TOOLS_PATH), écrit par bin/setup-sandbox
+source /etc/kelmscott/sandbox.env
+
+command="${1:-}"
+university="${2:-}"
+site="${3:-}"
+git_url="${4:-}"
+
+fail() {
+  echo "kelmscott-sandbox : $1" >&2
+  exit 2
+}
+
+case "$command" in
+  fetch) [[ "$git_url" == https://* ]] || fail "URL invalide" ;;
+  compile) ;;
+  *) fail "commande inconnue" ;;
+esac
+# Comme valid_name? dans l'app : pas de '/', ni de nom commençant par '.'
+name='^[A-Za-z0-9_-][A-Za-z0-9_.-]*$'
+[[ "$university" =~ $name ]] || fail "université invalide"
+[[ "$site" =~ $name ]] || fail "site invalide"
+
+# Le dossier de l'université appartient à root : le build ne peut pas remplacer le dossier du site
+# par un lien symbolique. Root ne touche jamais à l'intérieur du dossier du site.
+site_dir="$DATA/sites/$university/$site"
+install -d -o root -g root -m 755 "$DATA/sites/$university"
+[ -d "$site_dir" ] || install -d -o "$BUILD_USER" -g "$BUILD_USER" -m 755 "$site_dir"
+
+# Le build ne voit que le dossier de son site (les autres sites, les logs et /home sont masqués),
+# ne peut écrire nulle part ailleurs, ne peut pas gagner de privilèges et a des ressources limitées.
+# Les processus restants sont tués à la fin.
+exec systemd-run --wait --pipe --collect --quiet \
+  --uid="$BUILD_USER" --gid="$BUILD_USER" \
+  --working-directory="$site_dir" \
+  --property=ProtectSystem=strict \
+  --property=ProtectHome=tmpfs \
+  --property=TemporaryFileSystem="$DATA:ro" \
+  --property=BindPaths="$site_dir" \
+  --property=BindReadOnlyPaths="$TOOLS_DIR" \
+  --property=PrivateTmp=yes \
+  --property=PrivateDevices=yes \
+  --property=NoNewPrivileges=yes \
+  --property=RestrictSUIDSGID=yes \
+  --property=ProtectKernelTunables=yes \
+  --property=ProtectKernelModules=yes \
+  --property=ProtectKernelLogs=yes \
+  --property=ProtectControlGroups=yes \
+  --property=LockPersonality=yes \
+  --property=MemoryMax=4G \
+  --property=CPUQuota=200% \
+  --property=TasksMax=1024 \
+  --property=RuntimeMaxSec=30min \
+  --setenv=HOME="$site_dir" \
+  --setenv=PATH="$TOOLS_PATH:/usr/local/bin:/usr/bin:/bin" \
+  --setenv=LANG=C.UTF-8 \
+  "/usr/local/lib/kelmscott/$command" "$site_dir/repository" "$git_url"

@@ -1,0 +1,18 @@
+#!/bin/bash
+# Récupération du dépôt d'un site, en clone superficiel : seul le dernier commit est conservé.
+# Exécuté dans le sandbox (sandbox/run).
+set -e
+repository="$1"
+git_url="$2"
+if [ -d "$repository/.git" ]; then
+  # Sans reflog, le gc automatique de git peut supprimer les anciens commits
+  git -C "$repository" config core.logAllRefUpdates false
+  git -C "$repository" fetch --depth 1
+  # Plutôt qu'un pull : revient exactement à l'état distant (le build modifie yarn.lock)
+  git -C "$repository" reset --hard '@{upstream}'
+  git -C "$repository" submodule update --init --recursive --depth 1 --force
+else
+  # Un clone interrompu laisse un dossier sans .git
+  rm -rf "$repository"
+  git clone --depth 1 --recurse-submodules --shallow-submodules -- "$git_url" "$repository"
+fi

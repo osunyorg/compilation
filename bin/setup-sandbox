@@ -1,0 +1,31 @@
+#!/bin/bash
+# Installe le sandbox des builds (sandbox/run). Relancé par bin/update.
+# Les scripts exécutés par root ou dans le sandbox sont des copies appartenant à root,
+# que l'utilisateur du service ne peut pas modifier.
+set -e
+cd "$(dirname "$0")/.."
+
+# Utilisateur des builds, sans shell ni droits
+if ! id kelmscott-build &> /dev/null; then
+  sudo useradd --system --no-create-home --shell /usr/sbin/nologin kelmscott-build
+fi
+
+# Dossiers des sites (écrits par les builds) et de l'état (logs, statuts, verrous, écrits par le service)
+sudo install -d -o root -g root -m 755 /srv/kelmscott /srv/kelmscott/sites
+sudo install -d -o "$USER" -g "$USER" -m 755 /srv/kelmscott/state
+
+# Scripts
+sudo install -o root -g root -m 755 sandbox/run /usr/local/sbin/kelmscott-sandbox
+sudo install -d -o root -g root -m 755 /usr/local/lib/kelmscott /etc/kelmscott
+sudo install -o root -g root -m 755 sandbox/fetch sandbox/compile /usr/local/lib/kelmscott/
+
+# Outils (node, yarn, hugo) installés par mise, accessibles en lecture seule dans le sandbox
+printf 'TOOLS_DIR=%q\nTOOLS_PATH=%q\n' \
+  "${MISE_DATA_DIR:-$HOME/.local/share/mise}/installs" \
+  "$(mise bin-paths | paste -sd: -)" \
+  | sudo tee /etc/kelmscott/sandbox.env > /dev/null
+
+# L'utilisateur du service peut lancer le sandbox, et rien d'autre en root par ce biais
+echo "$USER ALL=(root) NOPASSWD: /usr/local/sbin/kelmscott-sandbox" | sudo tee /etc/sudoers.d/kelmscott > /dev/null
+sudo chmod 440 /etc/sudoers.d/kelmscott
+sudo visudo -cf /etc/sudoers.d/kelmscott

@@ -2,12 +2,17 @@ require 'fileutils'
 
 # Récupération, compilation et synchronisation d'un site, exécutées en arrière-plan
 class Publication
-  REPOSITORIES_PATH = File.expand_path('../../repositories', __dir__)
-  COMPILE_PATH = File.expand_path('../../bin/compile', __dir__)
-  SYNC_PATH = File.expand_path('../../bin/sync', __dir__)
+  # La récupération et la compilation, qui exécutent du code du dépôt,
+  # tournent dans le sandbox (sandbox/run), sous l'utilisateur kelmscott-build
+  SANDBOX_PATH = '/usr/local/sbin/kelmscott-sandbox'
+  # Un dossier par site, écrit par le build
+  SITES_PATH = '/srv/kelmscott/sites'
+  # Logs, statuts et verrous, écrits par le service, invisibles depuis le sandbox
+  STATE_PATH = '/srv/kelmscott/state'
+  SYNC_PATH = File.expand_path('../../sync', __dir__)
 
   # Liste blanche, identique à Communication::Website::Variable dans l'admin Osuny
-  # Chaque méthode correspond à un script dans bin/sync
+  # Chaque méthode correspond à un script dans sync/
   KEYS_BY_SYNC_METHOD = {
     'sftp' => %w[SFTP_HOST SFTP_PORT SFTP_USER SFTP_PASSWORD SFTP_PATH],
     'dxfl' => %w[DXFL_BUCKET AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY],
@@ -36,7 +41,7 @@ class Publication
   def run
     lock do
       start
-      fetched && compiled && synced && succeeded
+      fetched && compiled && publishable && synced && succeeded
     ensure
       finish
     end
@@ -47,21 +52,25 @@ class Publication
   private
 
   def repository_path
-    @repository_path ||= File.join(REPOSITORIES_PATH, university, site)
+    @repository_path ||= File.join(SITES_PATH, university, site, 'repository')
+  end
+
+  def state_path
+    @state_path ||= File.join(STATE_PATH, university)
   end
 
   def log_path
-    @log_path ||= File.join(repository_path, 'log.txt')
+    @log_path ||= File.join(state_path, "#{site}.log")
   end
 
   def status_path
-    @status_path ||= "#{repository_path}.status"
+    @status_path ||= File.join(state_path, "#{site}.status")
   end
 
   # Un seul build à la fois par site, y compris entre workers Puma
   def lock
-    FileUtils.mkdir_p(File.dirname(repository_path))
-    File.open("#{repository_path}.lock", File::CREAT) do |file|
+    FileUtils.mkdir_p(state_path)
+    File.open(File.join(state_path, "#{site}.lock"), File::CREAT) do |file|
       file.flock(File::LOCK_EX)
       yield
     end
@@ -70,17 +79,22 @@ class Publication
   def start
     @started_at = Time.now
     File.write(status_path, 'building')
+    File.write(log_path, "Début : #{format_time(started_at)}\n\n")
   end
 
   def fetched
-    return error('Récupération du dépôt impossible') unless step('Récupération') { fetch_repository }
-    # Écrit après le clone, qui exige un dossier vide
-    File.write(log_path, "Début : #{format_time(started_at)}\n\n")
-    @log_started = true
+    step('Récupération') { build('fetch', git_url) } || error('Récupération du dépôt impossible')
   end
 
   def compiled
-    step('Compilation') { compile } || error('Échec de la compilation')
+    step('Compilation') { build('compile') } || error('Échec de la compilation')
+  end
+
+  # Un lien symbolique dans public/ ferait mettre en ligne un fichier du serveur, lu par le service
+  def publishable
+    public_path = File.join(repository_path, 'public')
+    links = Dir.glob('**/*', File::FNM_DOTMATCH, base: public_path).select { |path| File.symlink?(File.join(public_path, path)) }
+    links.empty? || error("Liens symboliques interdits dans public : #{links.join(', ')}")
   end
 
   def synced
@@ -93,7 +107,6 @@ class Publication
 
   # Récapitulatif en fin de log, même en cas d'échec
   def finish
-    return unless @log_started
     File.write(log_path, summary, mode: 'a')
   end
 
@@ -114,31 +127,23 @@ class Publication
     durations[name] = Time.now - step_started_at
   end
 
-  # Clones superficiels : seul le dernier commit est conservé, sans reflog pour que
-  # le gc automatique de git puisse supprimer les anciens commits
-  def fetch_repository
-    if File.directory?(repository_path)
-      system('git', '-C', repository_path, 'config', 'core.logAllRefUpdates', 'false') &&
-        system('git', '-C', repository_path, 'fetch', '--depth', '1') &&
-        system('git', '-C', repository_path, 'reset', '--hard', '@{upstream}') &&
-        system('git', '-C', repository_path, 'submodule', 'update', '--init', '--recursive', '--depth', '1', '--force')
-    else
-      system('git', 'clone', '--depth', '1', '--recurse-submodules', '--shallow-submodules', '--', git_url, repository_path)
-    end
+  # sandbox/fetch et sandbox/compile exécutent du code du dépôt, sans les secrets
+  def build(command, *arguments)
+    execute('sudo', '--non-interactive', SANDBOX_PATH, command, university, site, *arguments)
   end
 
-  # Les secrets ne sont pas transmis à la compilation, qui exécute du code du dépôt (yarn install)
-  def compile
-    system(COMPILE_PATH, repository_path)
-  end
-
+  # Hors sandbox, sous l'utilisateur du service : seul code à recevoir les secrets
   def sync
-    system(environment, File.join(SYNC_PATH, sync_method), repository_path,
-           out: [log_path, 'a'], err: [:child, :out])
+    execute(environment, File.join(SYNC_PATH, sync_method), repository_path)
+  end
+
+  def execute(*command)
+    system(*command, out: [log_path, 'a'], err: [:child, :out])
   end
 
   def error(message)
     File.write(status_path, 'failure')
+    File.write(log_path, "\n#{message}\n", mode: 'a') if File.exist?(log_path)
     warn "[#{university}/#{site}] #{message}"
     false
   end

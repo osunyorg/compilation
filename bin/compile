@@ -1,9 +1,0 @@
-#!/bin/bash
-set -e
-cd "$1"
-# Hugo ne supprime pas les pages retirées du site
-rm -rf public
-# Premier run, s'il n'y a pas de yarn.lock
-yarn install
-# Compilation
-yarn osuny build >> log.txt

@@ -4,16 +4,185 @@
 
 Ce référentiel doit être cloné sur la machine Kelmscott.
 
-## Installation
+```
+app/        interface web et réception des demandes de l'admin Osuny (Sinatra)
+bin/        administration de la machine, lancée à la main
+sandbox/    récupération et compilation des sites, qui exécutent le code des dépôts, sans droits
+sync/       synchronisation des sites compilés, seule à recevoir les secrets
+```
+
+## Installation d'une VM
+
+### Prérequis
+
+- Une VM **Ubuntu 24.04 LTS** neuve, avec une IP fixe : les hébergeurs des sites peuvent la mettre en liste blanche.
+- Un accès SSH avec l'utilisateur `ubuntu`, qui a les droits sudo.
+- Un nom de domaine (par exemple `kelmscott.osuny.org`) dont l'enregistrement DNS pointe vers l'IP de la VM.
+- De l'espace disque : chaque site garde son dépôt, ses `node_modules` et sa compilation, soit plusieurs centaines de Mo pour un gros site.
+
+### 1. Système et pare-feu
 
 ```bash
 sudo apt update
-sudo apt install -y git
+sudo apt upgrade -y
+sudo apt install -y git ufw
+sudo ufw allow OpenSSH
+sudo ufw allow 80,443/tcp
+sudo ufw enable
+```
+
+### 2. Kelmscott
+
+Le dépôt doit être cloné dans `~/compilation` : le service systemd et la configuration nginx utilisent ce chemin.
+
+```bash
+cd ~
 git clone https://github.com/osunyorg/kelmscott.git compilation
 cd compilation
 bin/setup
+```
+
+`bin/setup` installe :
+
+- les paquets système (compilation de Ruby, libsodium, rsync, rclone, nginx) ;
+- Ruby, Node, Yarn et Hugo, via mise ;
+- l'application Sinatra, nginx en reverse proxy, et le service `kelmscott-puma` ;
+- le sandbox des builds (`bin/setup-sandbox`, voir [Cloisonnement des builds](#cloisonnement-des-builds)).
+
+Il faut ensuite ouvrir une nouvelle session SSH, pour que mise soit actif dans le shell.
+
+### 3. Domaine et HTTPS
+
+Remplacer `server_name` par le domaine de la VM dans `/etc/nginx/sites-available/kelmscott.conf`, puis :
+
+```bash
+sudo systemctl reload nginx
+bin/setup-ssl
+```
+
+### 4. Clés de chiffrement
+
+```bash
 bin/setup-keys
+```
+
+Reporter les trois valeurs affichées dans la configuration de l'admin Osuny, et sauvegarder la clé privée hors de la machine (voir [Clés de chiffrement](#clés-de-chiffrement)).
+
+### 5. Démarrage
+
+```bash
 bin/start
+```
+
+### 6. Restriction de sudo (recommandé)
+
+Sur les images cloud, `ubuntu` a généralement un sudo complet sans mot de passe. Les builds n'y ont pas accès (ils tournent sous `kelmscott-build`), mais si le service était compromis, il obtiendrait root. Une fois l'installation terminée, on peut ne lui laisser que le sandbox et le redémarrage du service, en remplaçant la ligne `ubuntu` de `/etc/sudoers.d/90-cloud-init-users` par :
+
+```
+ubuntu ALL=(root) NOPASSWD: /usr/bin/systemctl restart kelmscott-puma.service, /usr/bin/systemctl start kelmscott-puma.service
+```
+
+`bin/setup` et `bin/update` ont alors besoin d'un autre compte administrateur. Faire la modification avec `sudo visudo -f /etc/sudoers.d/90-cloud-init-users`, en gardant une deuxième session SSH ouverte pour ne pas se retrouver bloqué.
+
+## Protocole de vérification
+
+À dérouler après l'installation et après toute modification du sandbox. Dans les commandes, `DOMAINE` est le domaine de la VM.
+
+### 1. Services
+
+```bash
+systemctl is-active kelmscott-puma nginx
+id kelmscott-build
+ls -l /usr/local/sbin/kelmscott-sandbox /usr/local/lib/kelmscott /etc/sudoers.d/kelmscott
+```
+
+Attendu : deux fois `active`, l'utilisateur `kelmscott-build` existe, et les fichiers appartiennent à `root`.
+
+### 2. Sandbox
+
+```bash
+sudo -n /usr/local/sbin/kelmscott-sandbox
+sudo -n /usr/local/sbin/kelmscott-sandbox compile ../.. site
+sudo -n /usr/local/sbin/kelmscott-sandbox fetch test site file:///etc
+```
+
+Attendu : `commande inconnue`, `université invalide`, puis `URL invalide`, sans demande de mot de passe.
+
+### 3. HTTP
+
+```bash
+curl -s -o /dev/null -w '%{http_code}\n' https://DOMAINE/
+curl -s -w ' %{http_code}\n' -X POST https://DOMAINE/test/site -H 'Content-Type: application/json' -d '{}'
+curl -s https://DOMAINE/test/inconnu/badge.svg | grep -o '<title>[^<]*'
+```
+
+Attendu : `200`, puis `Unauthorized 401`, puis `Kelmscott : inconnu`.
+
+### 4. Isolation
+
+Créer un dépôt de test public (par exemple `kelmscott-canary`) qui tente de sortir du sandbox, avec deux fichiers.
+
+`package.json` :
+
+```json
+{
+  "name": "kelmscott-canary",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "osuny": "sh canary.sh"
+  }
+}
+```
+
+`canary.sh` :
+
+```sh
+echo "== utilisateur"; id
+echo "== clé privée"; cat /home/*/compilation/app/config/kelmscott.key
+echo "== sites visibles"; ls /srv/kelmscott/sites
+echo "== logs des autres sites"; ls /srv/kelmscott/state
+echo "== sudo"; sudo -n true
+echo "== écriture hors du site"; touch /etc/canary /srv/kelmscott/canary
+echo "== écriture dans /tmp"; touch /tmp/canary && echo "ok (privé)"
+echo "== réseau"; curl -sI https://registry.npmjs.org | head -1
+mkdir -p public && echo ok > public/index.html
+```
+
+Lancer sa publication depuis la VM, puis lire le log :
+
+```bash
+curl -X POST https://DOMAINE/test/canary \
+  -H "Authorization: Bearer $(cat ~/compilation/app/config/kelmscott.token)" \
+  -H "Content-Type: application/json" \
+  -d '{"git_url": "https://github.com/<compte>/kelmscott-canary.git", "sync_method": "dxfl", "variables": {"DXFL_BUCKET": "test"}}'
+sleep 60
+cat /srv/kelmscott/state/test/canary.log
+```
+
+Attendu dans le log :
+
+| Test | Résultat attendu |
+|---|---|
+| utilisateur | `kelmscott-build` |
+| clé privée | `No such file or directory` |
+| sites visibles | `test` seulement |
+| logs des autres sites | `No such file or directory` |
+| sudo | refusé (`no new privileges`) |
+| écriture hors du site | `Read-only file system` |
+| écriture dans /tmp | `ok (privé)` |
+| réseau | `HTTP/2 200` |
+
+La synchronisation échoue ensuite, faute de clés dxfl : c'est normal, et le badge de `test/canary` passe à `échec`, ce qui vérifie que les échecs remontent bien du sandbox.
+
+### 5. Publication réelle
+
+Activer Kelmscott sur un site dans l'admin Osuny et le publier. Attendu : le log du site (page `https://DOMAINE/<université>/<site>`) se termine par les durées et le poids, le badge passe à `succès`, et le site est en ligne.
+
+### 6. Nettoyage
+
+```bash
+sudo rm -rf /srv/kelmscott/sites/test /srv/kelmscott/state/test
 ```
 
 ## Mise à jour
@@ -25,9 +194,7 @@ bin/update
 bin/restart
 ```
 
-## Génération du certificat SSL
-
-Une fois le domaine pointé, exécuter `bin/setup-ssl`
+`bin/update` réinstalle les copies root du sandbox. Lors de la première mise à jour qui l'ajoute, lancer aussi `bin/setup-sandbox` à la main : bash continue d'exécuter l'ancienne version de `bin/update`, remplacée pendant le `git pull`.
 
 ## Clés de chiffrement
 
@@ -110,11 +277,32 @@ Réponses :
 
 Les compilations d'un même site sont exécutées l'une après l'autre. Les secrets ne sont pas transmis à la compilation (`yarn install` exécute du code issu du dépôt) ; ils sont utilisés uniquement lors de la synchronisation.
 
+## Cloisonnement des builds
+
+La récupération et la compilation d'un site exécutent du code issu de son dépôt (`yarn install`, configuration Hugo…), que toute personne ayant accès au dépôt peut modifier. Elles tournent donc dans un sandbox systemd (`sandbox/run`), sous l'utilisateur `kelmscott-build`, sans droits :
+
+- le build ne voit que le dossier de son site : les autres sites, les logs, `/home` (donc la clé privée et le jeton) sont masqués ;
+- il ne peut écrire que dans le dossier de son site, ni gagner de privilèges (pas de sudo, ni de setuid) ;
+- ses ressources sont limitées (4 Go de mémoire, 2 CPU, 30 minutes), et ses processus sont tués à la fin ;
+- ses caches (yarn, npm, Hugo) sont propres au site : le dossier du site est son `HOME`.
+
+La synchronisation, seule à recevoir les secrets déchiffrés, tourne hors sandbox, sous l'utilisateur du service, avec des scripts maîtrisés par Kelmscott.
+
+L'utilisateur du service ne peut lancer en root que `/usr/local/sbin/kelmscott-sandbox`, qui vérifie ses arguments. Les scripts exécutés par root ou dans le sandbox sont des copies appartenant à root, installées par `bin/setup-sandbox` (lancé par `bin/setup` et `bin/update`).
+
+```
+/srv/kelmscott/
+  sites/<université>/<site>/   écrit par le build, et son HOME (caches)
+    repository/                dépôt git, compilé dans public/
+  state/<université>/          écrit par le service, invisible depuis le sandbox
+    <site>.log, .status, .lock
+```
+
 ## Synchronisation
 
-Les scripts de synchronisation sont dans Kelmscott (`bin/sync`), et non dans les dépôts des sites : seul du code maîtrisé par Kelmscott a accès aux secrets déchiffrés.
+Les scripts de synchronisation sont dans Kelmscott (`sync/`), et non dans les dépôts des sites : seul du code maîtrisé par Kelmscott a accès aux secrets déchiffrés.
 
-Après une compilation réussie, Kelmscott lance `bin/sync/<sync_method>` avec le chemin du dépôt, et uniquement les variables de la méthode choisie dans son environnement. Le dossier envoyé est toujours `public/`. Les liens symboliques sont ignorés et aucun secret n'est écrit sur le disque. La sortie est ajoutée au `log.txt` du site.
+Après une compilation réussie, Kelmscott lance `sync/<sync_method>` avec le chemin du dépôt, et uniquement les variables de la méthode choisie dans son environnement. Le dossier envoyé est toujours `public/` ; la publication est refusée s'il contient un lien symbolique. Aucun secret n'est écrit sur le disque. La sortie est ajoutée au log du site.
 
 | Méthode | Outil | Variables |
 |---------|-------|-----------|

@@ -19,7 +19,7 @@ module Helpers
   end
 
   def get_logs(university, site)
-    path = "#{Publication::REPOSITORIES_PATH}/#{university}/#{site}/log.txt"
+    path = File.join(Publication::STATE_PATH, university, "#{site}.log")
     return unless File.exist? path
     # Explicite : sous systemd, sans LANG, Ruby lirait le fichier en US-ASCII
     File.read(path, encoding: 'UTF-8').scrub
@@ -27,7 +27,7 @@ module Helpers
 
   # État de la dernière publication, écrit par Publication
   def get_status(university, site)
-    path = "#{Publication::REPOSITORIES_PATH}/#{university}/#{site}.status"
+    path = File.join(Publication::STATE_PATH, university, "#{site}.status")
     File.exist?(path) ? File.read(path).strip : 'unknown'
   end
 

@@ -1,0 +1,10 @@
+#!/bin/bash
+# Compilation d'un site. Exécuté dans le sandbox (sandbox/run).
+set -e
+cd "$1"
+# Hugo ne supprime pas les pages retirées du site, il faut le faire
+rm -rf public
+# Premier run, il n'y a pas de node_modules
+yarn install
+# Compilation
+yarn osuny build
