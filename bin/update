@@ -4,6 +4,9 @@ cd "$(dirname "$0")/.."
 git pull
 (
   cd app;
+  # Réappliquée à chaque mise à jour, pour corriger une machine mal configurée
+  bundle config set --local deployment true;
+  bundle config set --local without "development test";
   bundle install
 )
 # Copies root des scripts du sandbox
