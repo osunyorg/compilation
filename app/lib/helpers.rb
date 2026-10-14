@@ -44,10 +44,6 @@ module Helpers
     [free, total]
   end
 
-  def format_gigabytes(bytes)
-    "#{(bytes / 1024.0**3).round(1).to_s.tr('.', ',')} Go"
-  end
-
   # Texte et couleur du badge
   def badge(status)
     case status

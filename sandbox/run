@@ -66,6 +66,7 @@ exec systemd-run --wait --pipe --collect --quiet \
   --property=TasksMax=1024 \
   --property=RuntimeMaxSec=30min \
   --setenv=HOME="$site_dir" \
+  --setenv=YARN_CACHE_FOLDER=/tmp/yarn \
   --setenv=PATH="$TOOLS_PATH:/usr/local/bin:/usr/bin:/bin" \
   --setenv=LANG=C.UTF-8 \
   "/usr/local/lib/kelmscott/$command" "$site_dir/repository" "$git_url"

@@ -1,7 +1,10 @@
 require 'fileutils'
+require_relative 'formats'
 
 # Récupération, compilation et synchronisation d'un site, exécutées en arrière-plan
 class Publication
+  include Formats
+
   # La récupération et la compilation, qui exécutent du code du dépôt,
   # tournent dans le sandbox (sandbox/run), sous l'utilisateur kelmscott-build
   SANDBOX_PATH = '/usr/local/sbin/kelmscott-sandbox'
@@ -159,21 +162,8 @@ class Publication
     false
   end
 
-  def format_time(time)
-    time.strftime('%d/%m/%Y %H:%M:%S %Z')
-  end
-
   # Espace disque réel du site, en octets : dépôt, .git, node_modules et caches
   def disk_usage
     IO.popen(['du', '-sk', site_path], err: File::NULL, &:read).to_i * 1024
-  end
-
-  def format_size(bytes)
-    "#{bytes / 1024 / 1024} Mo"
-  end
-
-  def format_duration(seconds)
-    minutes, seconds = seconds.round.divmod(60)
-    minutes.zero? ? "#{seconds} s" : "#{minutes} min #{seconds} s"
   end
 end

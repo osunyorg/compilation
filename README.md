@@ -196,6 +196,16 @@ bin/restart
 
 `bin/update` réinstalle les copies root du sandbox. Lors de la première mise à jour qui l'ajoute, lancer aussi `bin/setup-sandbox` à la main : bash continue d'exécuter l'ancienne version de `bin/update`, remplacée pendant le `git pull`.
 
+## Tests
+
+```bash
+cd app
+bundle install
+bundle exec rake test
+```
+
+Les tests couvrent l'interface web, les demandes de l'admin (authentification, validation, déchiffrement), le badge, et le déroulement d'une publication avec un sandbox et une synchronisation simulés. Le sandbox lui-même ne tourne que sur Linux avec systemd : il se vérifie sur la machine, avec le [protocole de vérification](#protocole-de-vérification).
+
 ## Clés de chiffrement
 
 Les secrets de synchronisation des sites (mots de passe SFTP, clés AWS…) sont saisis dans l'admin Osuny, qui les chiffre immédiatement avec la **clé publique** de Kelmscott. Seul Kelmscott possède la **clé privée** permettant de les déchiffrer : l'admin ne stocke et ne transmet donc jamais de secret en clair.
@@ -284,7 +294,7 @@ La récupération et la compilation d'un site exécutent du code issu de son dé
 - le build ne voit que le dossier de son site : les autres sites, les logs, `/home` (donc la clé privée et le jeton) sont masqués ;
 - il ne peut écrire que dans le dossier de son site, ni gagner de privilèges (pas de sudo, ni de setuid) ;
 - ses ressources sont limitées (4 Go de mémoire, 2 CPU, 30 minutes), et ses processus sont tués à la fin ;
-- ses caches (yarn, npm, Hugo) sont propres au site : le dossier du site est son `HOME`.
+- ses caches (npm, Hugo) sont propres au site : le dossier du site est son `HOME`. Le cache de yarn, qui pèserait plusieurs centaines de Mo par site, est placé dans son `/tmp` privé et effacé à chaque build : `node_modules` restant en place, seules les dépendances modifiées sont téléchargées.
 
 La synchronisation, seule à recevoir les secrets déchiffrés, tourne hors sandbox, sous l'utilisateur du service, avec des scripts maîtrisés par Kelmscott.
 

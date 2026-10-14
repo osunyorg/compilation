@@ -8,3 +8,9 @@ gem "rackup", "~> 2.3"
 gem "rbnacl", "~> 7.1"
 gem "sinatra"
 gem "sinatra-contrib"
+
+group :development, :test do
+  gem "minitest"
+  gem "rack-test"
+  gem "rake"
+end

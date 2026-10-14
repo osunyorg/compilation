@@ -4,11 +4,11 @@
   <table>
     <tr>
       <th>Espace utilisé par Kelmscott</th>
-      <td><%= format_gigabytes(@used_space) %></td>
+      <td><%= format_size(@used_space) %></td>
     </tr>
     <tr>
       <th>Espace libre</th>
-      <td><%= format_gigabytes(@total_space) %></td>
+      <td><%= format_size(@free_space) %></td>
     </tr>
   </table>
 </div>

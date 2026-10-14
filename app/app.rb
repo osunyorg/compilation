@@ -1,10 +1,11 @@
 require 'sinatra'
 require 'sinatra/content_for'
 require 'json'
+require_relative 'lib/formats'
 require_relative 'lib/helpers'
 require_relative 'lib/publication'
 
-helpers Helpers
+helpers Helpers, Formats
 
 get '/' do
   @title = 'Kelmscott'
