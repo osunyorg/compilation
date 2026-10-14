@@ -51,8 +51,9 @@ class Publication
 
   def fetch_repository
     if File.directory?(@repository_path)
-      system('git', '-C', @repository_path, 'pull') &&
-        system('git', '-C', @repository_path, 'submodule', 'update', '--init', '--recursive')
+      system('git', '-C', @repository_path, 'fetch') &&
+        system('git', '-C', @repository_path, 'reset', '--hard', '@{upstream}') &&
+        system('git', '-C', @repository_path, 'submodule', 'update', '--init', '--recursive', '--force')
     else
       system('git', 'clone', '--recurse-submodules', '--', @git_url, @repository_path)
     end
