@@ -91,6 +91,13 @@ class AppTest < KelmscottTest
     end
   end
 
+  def test_site_shows_status_above_logs
+    write_state('universite', 'site', 'status', 'failure')
+    write_state('universite', 'site', 'log', 'Début : 14/10/2026')
+    get '/universite/site'
+    assert_match(%r{<img src="/universite/site/badge.svg" alt="Statut : échec">\s*</p>\s*<pre>Début}, last_response.body)
+  end
+
   def test_home_keeps_default_favicon
     get '/'
     assert_includes last_response.body, '/assets/images/favicons/favicon.ico'
