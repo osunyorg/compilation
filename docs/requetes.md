@@ -29,11 +29,20 @@ Réponses :
 
 | Code | Signification |
 |------|---------------|
-| 202 | Demande acceptée, le clone/pull, la compilation puis la synchronisation s'exécutent en arrière-plan |
+| 202 | Demande acceptée et mise en file d'attente : la récupération, la compilation puis la synchronisation suivront |
 | 400 | Paramètres invalides, ou secret impossible à déchiffrer (mauvaise clé publique dans l'admin) |
 | 401 | Signature absente, invalide ou expirée |
 | 409 | Demande déjà reçue (rejeu) |
 | 415 | Le corps n'est pas en `application/json` |
-| 503 | Les clés n'ont pas été configurées (`bin/configure/keys`), ou trop de publications en cours : l'admin réessaie plus tard |
+| 503 | Les clés n'ont pas été configurées (`bin/configure/keys`) |
 
-Les compilations d'un même site sont exécutées l'une après l'autre, et au plus deux publications tournent en même temps par processus Puma (`Publication::MAX_RUNNING`). Les secrets ne sont pas transmis à la compilation (Hugo et le thème exécutent du code issu du dépôt) ; ils sont utilisés uniquement lors de la synchronisation.
+## File d'attente
+
+Les demandes acceptées sont mises en file d'attente sur le disque (`state/.queue/`), telles que reçues : les secrets y restent chiffrés, et ne sont déchiffrés qu'en mémoire, au moment de la synchronisation. La file survit à un redémarrage.
+
+- un site n'a qu'une demande en attente, la dernière reçue : cent demandes pour un même site donnent une seule publication ;
+- chaque processus Puma dépile la file avec deux publications simultanées (`PublicationQueue::WORKERS`), la demande la plus ancienne d'abord ;
+- un site en cours de publication garde sa demande en attente, sans bloquer les autres ;
+- le badge affiche `en attente`, puis `en cours`.
+
+Les compilations d'un même site sont exécutées l'une après l'autre. Les secrets ne sont pas transmis à la compilation (Hugo et le thème exécutent du code issu du dépôt) ; ils sont utilisés uniquement lors de la synchronisation.

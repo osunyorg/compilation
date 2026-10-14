@@ -20,6 +20,8 @@ L'utilisateur du service ne peut lancer en root que `/usr/local/sbin/kelmscott-s
 /srv/kelmscott/
   sites/<université>/<site>/   écrit par le build, et son HOME (caches)
     repository/                dépôt git, compilé dans public/
-  state/<université>/          écrit par le service, invisible depuis les sandbox
-    <site>.log, .status, .size, .lock
+  state/                       écrit par le service, invisible depuis les sandbox
+    <université>/<site>.log, .status, .size, .lock
+    .queue/<université>/<site>.json   demande en attente, secrets chiffrés
+    .signatures/               signatures déjà reçues (rejeu)
 ```

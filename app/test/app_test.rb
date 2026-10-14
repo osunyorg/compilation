@@ -3,9 +3,6 @@ require_relative 'test_helper'
 class AppTest < KelmscottTest
   include Rack::Test::Methods
 
-  # Publications demandées par les requêtes, sans les exécuter
-  PUBLICATIONS = Queue.new
-
   def app
     Sinatra::Application
   end
@@ -13,7 +10,6 @@ class AppTest < KelmscottTest
   def setup
     super
     @public_key, @signing_key = configure_keys
-    PUBLICATIONS.clear
   end
 
   def publish(body, path: '/universite/site', content_type: 'application/json', timestamp: Time.now.to_i, signing_key: @signing_key, signed_body: nil)
@@ -34,19 +30,6 @@ class AppTest < KelmscottTest
         AWS_SECRET_ACCESS_KEY: encrypt(@public_key, 'secret')
       }
     }
-  end
-
-  # Remplace Publication.new le temps d'un bloc, et renvoie les arguments de la publication lancée
-  def recording_publication
-    Publication.define_singleton_method(:new) do |*arguments|
-      PUBLICATIONS << arguments
-      Struct.new(:run).new
-    end
-    yield
-    # La publication est lancée dans un thread
-    PUBLICATIONS.pop(timeout: 1)
-  ensure
-    Publication.singleton_class.remove_method(:new)
   end
 
   # Pages
@@ -122,7 +105,7 @@ class AppTest < KelmscottTest
   # Badge
 
   def test_badge_states
-    { nil => 'inconnu', 'building' => 'en cours', 'success' => 'succès', 'failure' => 'échec' }.each do |status, text|
+    { nil => 'inconnu', 'queued' => 'en attente', 'building' => 'en cours', 'success' => 'succès', 'failure' => 'échec' }.each do |status, text|
       write_state('universite', 'site', 'status', status) if status
       get '/universite/site/badge.svg'
       assert last_response.ok?
@@ -139,12 +122,17 @@ class AppTest < KelmscottTest
 
   # Demandes de publication
 
+  # La demande est mise en file, telle que reçue : le secret reste chiffré
   def test_publish
-    arguments = recording_publication { publish(valid_body) }
+    body = valid_body
+    publish(body)
     assert_equal 202, last_response.status
-    university, site, git_url, sync_method, environment = arguments
-    assert_equal %w[universite site https://github.com/osunyorg/site.git s3], [university, site, git_url, sync_method]
-    assert_equal({ 'S3_BUCKET' => 'bucket', 'AWS_ACCESS_KEY_ID' => 'id', 'AWS_SECRET_ACCESS_KEY' => 'secret' }, environment)
+    assert_equal 'queued', read_state('universite', 'site', 'status')
+    university, site, request = PublicationQueue.pop
+    assert_equal %w[universite site], [university, site]
+    assert_equal 'https://github.com/osunyorg/site.git', request['git_url']
+    assert_equal 's3', request['sync_method']
+    assert_equal JSON.parse(body.to_json)['variables'], request['variables']
   end
 
   def test_publish_without_keys
@@ -178,18 +166,10 @@ class AppTest < KelmscottTest
   def test_publish_replayed
     body = valid_body.to_json
     timestamp = Time.now.to_i
-    recording_publication { publish(body, timestamp: timestamp) }
+    publish(body, timestamp: timestamp)
     assert_equal 202, last_response.status
     publish(body, timestamp: timestamp)
     assert_equal 409, last_response.status
-  end
-
-  def test_publish_too_many
-    Publication::MAX_RUNNING.times { Publication.reserve }
-    publish(valid_body)
-    assert_equal 503, last_response.status
-  ensure
-    Publication::MAX_RUNNING.times { Publication.release }
   end
 
   def test_publish_without_admin_key

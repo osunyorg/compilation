@@ -4,6 +4,7 @@ require 'json'
 require_relative 'lib/formats'
 require_relative 'lib/helpers'
 require_relative 'lib/publication'
+require_relative 'lib/publication_queue'
 
 helpers Helpers, Formats
 
@@ -75,19 +76,14 @@ post '/:university/:site' do
   unknown_keys = variables.keys - Publication::KEYS_BY_SYNC_METHOD[sync_method]
   halt 400, "Unknown variables: #{unknown_keys.join(', ')}" if unknown_keys.any?
 
+  # Vérifie que les secrets se déchiffrent, pour le signaler tout de suite à l'admin. Ils restent chiffrés dans la file.
   begin
-    secrets = variables.slice(*Publication::SECRET_KEYS).transform_values { |value| decrypt(value) }
+    variables.slice(*Publication::SECRET_KEYS).each_value { |value| Publication.decrypt(value) }
   rescue ArgumentError, RbNaCl::CryptoError
     halt 400, 'Secret decryption failed'
   end
-  environment = variables.merge(secrets)
 
-  halt 503, 'Too many publications, retry later' unless Publication.reserve
-  Thread.new do
-    Publication.new(university, site, git_url, sync_method, environment).run
-  ensure
-    Publication.release
-  end
+  PublicationQueue.push(university, site, { 'git_url' => git_url, 'sync_method' => sync_method, 'variables' => variables })
   status 202
   'Accepted'
 end

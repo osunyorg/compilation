@@ -55,6 +55,7 @@ module Helpers
   # Texte et couleur du badge
   def badge(status)
     case status
+    when 'queued' then ['en attente', '#007ec6']
     when 'building' then ['en cours', '#dfb317']
     when 'success' then ['succès', '#4c1']
     when 'failure' then ['échec', '#e05d44']
@@ -112,11 +113,5 @@ module Helpers
     uri.scheme == 'https' && GIT_HOSTS.include?(uri.host) && uri.userinfo.nil?
   rescue URI::InvalidURIError
     false
-  end
-
-  # Les secrets sont chiffrés par l'admin avec la clé publique (sealed box libsodium)
-  def decrypt(value)
-    private_key = RbNaCl::PrivateKey.new(Base64.strict_decode64(read_config(PRIVATE_KEY_PATH)))
-    RbNaCl::Boxes::Sealed.from_private_key(private_key).decrypt(Base64.strict_decode64(value))
   end
 end

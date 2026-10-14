@@ -136,14 +136,16 @@ class PublicationTest < KelmscottTest
     assert_includes log, 'Fichiers interdits dans public (liens symboliques, fichiers spéciaux) : bloque'
   end
 
-  # Format lu par sandbox/sync, y compris pour une clé SSH sur plusieurs lignes
+  # Format lu par sandbox/sync : les secrets y sont déchiffrés, y compris une clé SSH sur plusieurs lignes
   def test_sync_input
-    environment = { 'SFTP_HOST' => 'ftp.example.org', 'RSYNC_SSH_PRIVATE_KEY' => "-----BEGIN\nclé\n-----END\n" }
-    input = Publication.new('universite', 'site', 'https://example.org/site.git', 'sftp', environment).send(:sync_input)
+    public_key, = configure_keys
+    key = "-----BEGIN\nclé\n-----END\n"
+    variables = { 'RSYNC_HOST' => 'example.org', 'RSYNC_SSH_PRIVATE_KEY' => encrypt(public_key, key) }
+    input = Publication.new('universite', 'site', 'https://example.org/site.git', 'rsync', variables).send(:sync_input)
     lines = input.lines(chomp: true)
     assert_equal 2, lines.size
     decoded = lines.to_h { |line| name, value = line.split('=', 2); [name, Base64.strict_decode64(value).force_encoding('UTF-8')] }
-    assert_equal environment, decoded
+    assert_equal({ 'RSYNC_HOST' => 'example.org', 'RSYNC_SSH_PRIVATE_KEY' => key }, decoded)
   end
 
   def test_exception
@@ -156,6 +158,6 @@ class PublicationTest < KelmscottTest
 
   def test_secrets_stay_private
     publication = Publication.new('universite', 'site', 'https://example.org/site.git', 'dxfl', { 'AWS_SECRET_ACCESS_KEY' => 'secret' })
-    assert_raises(NoMethodError) { publication.environment }
+    assert_raises(NoMethodError) { publication.variables }
   end
 end

@@ -1,5 +1,6 @@
 require 'base64'
 require 'fileutils'
+require 'rbnacl'
 require_relative 'formats'
 
 # Récupération, compilation et synchronisation d'un site, exécutées en arrière-plan
@@ -28,38 +29,36 @@ class Publication
                       :site,
                       :git_url,
                       :sync_method,
-                      :environment,
+                      :variables,
                       :durations,
                       :started_at
-
-  # Publications simultanées par processus Puma : au-delà, Kelmscott répond 503 et l'admin réessaie plus tard
-  MAX_RUNNING = 2
-  @running = 0
-  @mutex = Mutex.new
-
-  def self.reserve
-    @mutex.synchronize do
-      return false if @running >= MAX_RUNNING
-      @running += 1
-    end
-    true
-  end
-
-  def self.release
-    @mutex.synchronize { @running -= 1 }
-  end
 
   # Fichier d'état d'un site (log, status, size, lock), lu aussi par l'interface web
   def self.state_file(university, site, extension)
     File.join(STATE_PATH, university, "#{site}.#{extension}")
   end
 
-  def initialize(university, site, git_url, sync_method, environment)
+  # Une publication du site est en cours : son verrou est pris
+  def self.running?(university, site)
+    path = state_file(university, site, 'lock')
+    return false unless File.exist?(path)
+    File.open(path) { |file| !file.flock(File::LOCK_EX | File::LOCK_NB) }
+  end
+
+  # Les secrets sont chiffrés par l'admin avec la clé publique de Kelmscott (sealed box libsodium)
+  def self.decrypt(value)
+    private_key = RbNaCl::PrivateKey.new(Base64.strict_decode64(File.read(Helpers::PRIVATE_KEY_PATH).strip))
+    RbNaCl::Boxes::Sealed.from_private_key(private_key).decrypt(Base64.strict_decode64(value))
+  end
+
+  # Les variables arrivent telles que reçues de l'admin : les secrets sont déchiffrés au dernier moment,
+  # en mémoire, pour la synchronisation
+  def initialize(university, site, git_url, sync_method, variables)
     @university = university
     @site = site
     @git_url = git_url
     @sync_method = sync_method
-    @environment = environment
+    @variables = variables
     @durations = {}
   end
 
@@ -188,9 +187,12 @@ class Publication
     execute('sudo', '--non-interactive', SANDBOX_PATH, 'sync', university, site, sync_method, input: sync_input)
   end
 
-  # Une variable par ligne, NOM=valeur en base 64, lue par sandbox/sync
+  # Une variable par ligne, NOM=valeur en base 64, lue par sandbox/sync. Les secrets sont déchiffrés ici.
   def sync_input
-    environment.map { |name, value| "#{name}=#{Base64.strict_encode64(value)}\n" }.join
+    variables.map do |name, value|
+      value = self.class.decrypt(value) if SECRET_KEYS.include?(name)
+      "#{name}=#{Base64.strict_encode64(value)}\n"
+    end.join
   end
 
   def execute(*command, input: nil)
