@@ -1,12 +1,13 @@
 require_relative 'test_helper'
 
 class PublicationTest < KelmscottTest
-  # Remplace le sandbox et la synchronisation, qui ne tournent que sur le serveur
-  class FakePublication < Publication
+  # Remplace le sandbox, qui ne tourne que sur le serveur : il simule le build et la synchronisation
+  class FakeSandbox
     attr_accessor :fetch_result, :compile_result, :sync_result, :public_files, :public_links, :public_fifos, :site_files, :error_to_raise
+    attr_reader :synced
 
-    def initialize(*)
-      super
+    def initialize(site)
+      @site = site
       @fetch_result = true
       @compile_result = true
       @sync_result = true
@@ -17,29 +18,38 @@ class PublicationTest < KelmscottTest
       @site_files = {}
     end
 
-    private
-
-    def build(command, *)
+    def fetch(_git_url)
       raise error_to_raise if error_to_raise
-      return fetch_result if command == 'fetch'
-      public_path = File.join(repository_path, 'public')
-      FileUtils.mkdir_p(public_path)
-      public_files.each { |file| File.write(File.join(public_path, file), 'ok') }
-      public_links.each { |link| File.symlink('/etc/hosts', File.join(public_path, link)) }
-      public_fifos.each { |fifo| File.mkfifo(File.join(public_path, fifo)) }
+      fetch_result
+    end
+
+    def compile
+      FileUtils.mkdir_p(@site.public_path)
+      public_files.each { |file| File.write(File.join(@site.public_path, file), 'ok') }
+      public_links.each { |link| File.symlink('/etc/hosts', File.join(@site.public_path, link)) }
+      public_fifos.each { |fifo| File.mkfifo(File.join(@site.public_path, fifo)) }
       site_files.each do |file, megabytes|
-        path = File.join(site_path, file)
+        path = File.join(@site.path, file)
         FileUtils.mkdir_p(File.dirname(path))
         File.write(path, 'x' * megabytes * 1024**2)
       end
-      execute('echo', 'Compilation simulée')
+      @site.append_log("Compilation simulée\n")
       compile_result
     end
 
-    def sync
-      execute('echo', 'Synchronisation simulée')
+    def sync(sync_method, environment, secrets)
+      @synced = [sync_method, environment, secrets]
+      @site.append_log("Synchronisation simulée\n")
       sync_result
     end
+  end
+
+  class FakePublication < Publication
+    public def sandbox
+      @fake_sandbox ||= FakeSandbox.new(site)
+    end
+
+    private
 
     # Les erreurs attendues sont vérifiées dans le log, inutile de les afficher
     def warn(*); end
@@ -72,7 +82,7 @@ class PublicationTest < KelmscottTest
   end
 
   def test_size_details
-    publication.site_files = {
+    publication.sandbox.site_files = {
       'repository/.git/pack' => 2,
       'repository/content/page.md' => 1,
       '.npm/paquet.tgz' => 4,
@@ -96,7 +106,7 @@ class PublicationTest < KelmscottTest
   end
 
   def test_fetch_failure
-    publication.fetch_result = false
+    publication.sandbox.fetch_result = false
     publication.run
     assert_equal 'failure', status
     assert_includes log, 'Récupération du dépôt impossible'
@@ -105,7 +115,7 @@ class PublicationTest < KelmscottTest
   end
 
   def test_compile_failure
-    publication.compile_result = false
+    publication.sandbox.compile_result = false
     publication.run
     assert_equal 'failure', status
     assert_includes log, 'Échec de la compilation'
@@ -114,15 +124,24 @@ class PublicationTest < KelmscottTest
   end
 
   def test_sync_failure
-    publication.sync_result = false
+    publication.sandbox.sync_result = false
     publication.run
     assert_equal 'failure', status
     assert_includes log, 'Échec de la synchronisation'
     assert_match(/^  Synchronisation : /, log)
   end
 
+  # Les secrets arrivent chiffrés, et ne sont déchiffrés que pour la synchronisation
+  def test_sync_decrypts_secrets
+    public_key, = configure_keys
+    variables = { 'S3_BUCKET' => 'bucket', 'AWS_SECRET_ACCESS_KEY' => encrypt(public_key, 'secret') }
+    publication = FakePublication.new('universite', 'site', 'https://example.org/site.git', 's3', variables)
+    publication.run
+    assert_equal ['s3', { 'S3_BUCKET' => 'bucket', 'AWS_SECRET_ACCESS_KEY' => 'secret' }, ['secret']], publication.sandbox.synced
+  end
+
   def test_refuses_symbolic_links
-    publication.public_links = ['secret.txt']
+    publication.sandbox.public_links = ['secret.txt']
     publication.run
     assert_equal 'failure', status
     assert_includes log, 'Fichiers interdits dans public (liens symboliques, fichiers spéciaux) : secret.txt'
@@ -130,26 +149,14 @@ class PublicationTest < KelmscottTest
   end
 
   def test_refuses_special_files
-    publication.public_fifos = ['bloque']
+    publication.sandbox.public_fifos = ['bloque']
     publication.run
     assert_equal 'failure', status
     assert_includes log, 'Fichiers interdits dans public (liens symboliques, fichiers spéciaux) : bloque'
   end
 
-  # Format lu par sandbox/sync : les secrets y sont déchiffrés, y compris une clé SSH sur plusieurs lignes
-  def test_sync_input
-    public_key, = configure_keys
-    key = "-----BEGIN\nclé\n-----END\n"
-    variables = { 'RSYNC_HOST' => 'example.org', 'RSYNC_SSH_PRIVATE_KEY' => encrypt(public_key, key) }
-    input = Publication.new('universite', 'site', 'https://example.org/site.git', 'rsync', variables).send(:sync_input)
-    lines = input.lines(chomp: true)
-    assert_equal 2, lines.size
-    decoded = lines.to_h { |line| name, value = line.split('=', 2); [name, Base64.strict_decode64(value).force_encoding('UTF-8')] }
-    assert_equal({ 'RSYNC_HOST' => 'example.org', 'RSYNC_SSH_PRIVATE_KEY' => key }, decoded)
-  end
-
   def test_exception
-    publication.error_to_raise = RuntimeError.new('boom')
+    publication.sandbox.error_to_raise = RuntimeError.new('boom')
     publication.run
     assert_equal 'failure', status
     assert_includes log, 'RuntimeError: boom'

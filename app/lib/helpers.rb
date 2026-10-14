@@ -5,9 +5,7 @@ require 'rbnacl'
 require 'uri'
 
 module Helpers
-  # Générés par bin/configure/keys, jamais versionnés
-  PRIVATE_KEY_PATH = File.expand_path('../config/kelmscott.key', __dir__)
-  # Clé publique de signature de l'admin Osuny, pour vérifier l'origine des demandes
+  # Clé publique de signature de l'admin Osuny, pour vérifier l'origine des demandes (bin/configure/keys)
   ADMIN_KEY_PATH = File.expand_path('../config/admin.pub', __dir__)
   # Au-delà, une demande signée est refusée, pour limiter le rejeu
   SIGNATURE_MAX_AGE = 300
@@ -26,27 +24,14 @@ module Helpers
     name.match?(/\A[\w-][\w.-]*\z/)
   end
 
-  def get_logs(university, site)
-    path = Publication.state_file(university, site, 'log')
-    return unless File.exist? path
-    # Explicite : sous systemd, sans LANG, Ruby lirait le fichier en US-ASCII
-    File.read(path, encoding: 'UTF-8').scrub
-  end
-
-  # État de la dernière publication, écrit par Publication
-  def get_status(university, site)
-    path = Publication.state_file(university, site, 'status')
-    File.exist?(path) ? File.read(path).strip : 'unknown'
-  end
-
   # Somme des espaces disque enregistrés à la fin de chaque publication
   def used_space
-    Dir[File.join(Publication::STATE_PATH, '*', '*.size')].sum { |path| File.read(path).to_i }
+    Dir[File.join(Publication::Site::STATE_PATH, '*', '*.size')].sum { |path| File.read(path).to_i }
   end
 
   # Espace libre et total du disque de Kelmscott, en octets
   def disk_space
-    _, line = IO.popen(['df', '-Pk', Publication::STATE_PATH], err: File::NULL, &:readlines)
+    _, line = IO.popen(['df', '-Pk', Publication::Site::STATE_PATH], err: File::NULL, &:readlines)
     return [0, 0] unless line
     total, _used, free = line.split[1..3].map { |kilobytes| kilobytes.to_i * 1024 }
     [free, total]
@@ -75,7 +60,7 @@ module Helpers
   end
 
   def configured?
-    File.exist?(PRIVATE_KEY_PATH) && File.exist?(ADMIN_KEY_PATH)
+    File.exist?(Publication::Variables::PRIVATE_KEY_PATH) && File.exist?(ADMIN_KEY_PATH)
   end
 
   # La demande est signée par l'admin (Ed25519) : horodatage, méthode, chemin et corps.
@@ -94,7 +79,7 @@ module Helpers
   # Ed25519 est déterministe, une même demande donne la même signature ; une nouvelle demande a un autre horodatage.
   # Un fichier par signature, créé de façon atomique : valable entre les processus Puma.
   def first_use?
-    path = File.join(Publication::STATE_PATH, '.signatures')
+    path = File.join(Publication::Site::STATE_PATH, '.signatures')
     FileUtils.mkdir_p(path)
     Dir.glob(File.join(path, '*')).each do |file|
       File.delete(file) if Time.now - File.mtime(file) > 2 * SIGNATURE_MAX_AGE

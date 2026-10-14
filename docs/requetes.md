@@ -41,7 +41,7 @@ Réponses :
 Les demandes acceptées sont mises en file d'attente sur le disque (`state/.queue/`), telles que reçues : les secrets y restent chiffrés, et ne sont déchiffrés qu'en mémoire, au moment de la synchronisation. La file survit à un redémarrage.
 
 - un site n'a qu'une demande en attente, la dernière reçue : cent demandes pour un même site donnent une seule publication ;
-- chaque processus Puma dépile la file avec deux publications simultanées (`PublicationQueue::WORKERS`), la demande la plus ancienne d'abord ;
+- chaque processus Puma dépile la file avec deux publications simultanées (`Publication::Queue::WORKERS`), la demande la plus ancienne d'abord ;
 - un site en cours de publication garde sa demande en attente, sans bloquer les autres ;
 - le badge affiche `en attente`, puis `en cours`.
 

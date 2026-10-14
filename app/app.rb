@@ -4,7 +4,6 @@ require 'json'
 require_relative 'lib/formats'
 require_relative 'lib/helpers'
 require_relative 'lib/publication'
-require_relative 'lib/publication_queue'
 
 helpers Helpers, Formats
 
@@ -14,7 +13,7 @@ set :erb, escape_html: true
 get '/' do
   @title = 'Kelmscott'
   @summary = 'Imprimerie de sites web'
-  @universities = directories_in(Publication::SITES_PATH)
+  @universities = directories_in(Publication::Site::SITES_PATH)
   @used_space = used_space
   @free_space, @total_space = disk_space
   erb :index
@@ -24,7 +23,7 @@ get '/:university' do
   halt 400 unless valid_name?(params[:university])
   @university = params[:university]
   @title = @university
-  path = File.join(Publication::SITES_PATH, @university)
+  path = File.join(Publication::Site::SITES_PATH, @university)
   @sites = directories_in(path)
   erb :university
 end
@@ -34,15 +33,16 @@ get '/:university/:site' do
   @university = params[:university]
   @site = params[:site]
   @title = @site
-  @logs = get_logs(@university, @site)
-  @status = get_status(@university, @site)
+  site = Publication::Site.new(@university, @site)
+  @logs = site.log
+  @status = site.status
   erb :site
 end
 
 # Public : affiché par l'admin Osuny, comme le badge d'un workflow GitHub
 get '/:university/:site/badge.svg' do
   halt 400 unless valid_name?(params[:university]) && valid_name?(params[:site])
-  @text, @color = badge(get_status(params[:university], params[:site]))
+  @text, @color = badge(Publication::Site.new(params[:university], params[:site]).status)
   content_type 'image/svg+xml'
   cache_control :no_cache
   erb :'badge.svg', layout: false
@@ -69,21 +69,21 @@ post '/:university/:site' do
   halt 400, 'Invalid git_url' unless valid_git_url?(git_url)
 
   sync_method = payload['sync_method'].to_s
-  halt 400, 'Invalid sync_method' unless Publication::KEYS_BY_SYNC_METHOD.key?(sync_method)
+  halt 400, 'Invalid sync_method' unless Publication::Variables::KEYS_BY_SYNC_METHOD.key?(sync_method)
 
   variables = payload['variables'] || {}
   halt 400, 'Invalid variables' unless variables.is_a?(Hash) && variables.values.all?(String)
-  unknown_keys = variables.keys - Publication::KEYS_BY_SYNC_METHOD[sync_method]
+  unknown_keys = variables.keys - Publication::Variables::KEYS_BY_SYNC_METHOD[sync_method]
   halt 400, "Unknown variables: #{unknown_keys.join(', ')}" if unknown_keys.any?
 
   # Vérifie que les secrets se déchiffrent, pour le signaler tout de suite à l'admin. Ils restent chiffrés dans la file.
   begin
-    variables.slice(*Publication::SECRET_KEYS).each_value { |value| Publication.decrypt(value) }
+    Publication::Variables.secrets(variables)
   rescue ArgumentError, RbNaCl::CryptoError
     halt 400, 'Secret decryption failed'
   end
 
-  PublicationQueue.push(university, site, { 'git_url' => git_url, 'sync_method' => sync_method, 'variables' => variables })
+  Publication::Queue.push(university, site, { 'git_url' => git_url, 'sync_method' => sync_method, 'variables' => variables })
   status 202
   'Accepted'
 end

@@ -36,7 +36,7 @@ class AppTest < KelmscottTest
 
   def test_home
     write_state('universite', 'site', 'size', 5 * 1024**3)
-    FileUtils.mkdir_p(File.join(Publication::SITES_PATH, 'universite', 'site'))
+    FileUtils.mkdir_p(File.join(Publication::Site::SITES_PATH, 'universite', 'site'))
     get '/'
     assert last_response.ok?
     free_space, total_space = Object.new.extend(Helpers).disk_space
@@ -46,7 +46,7 @@ class AppTest < KelmscottTest
   end
 
   def test_university
-    FileUtils.mkdir_p(File.join(Publication::SITES_PATH, 'universite', 'site'))
+    FileUtils.mkdir_p(File.join(Publication::Site::SITES_PATH, 'universite', 'site'))
     get '/universite'
     assert last_response.ok?
     assert_includes last_response.body, 'site'
@@ -128,7 +128,7 @@ class AppTest < KelmscottTest
     publish(body)
     assert_equal 202, last_response.status
     assert_equal 'queued', read_state('universite', 'site', 'status')
-    university, site, request = PublicationQueue.pop
+    university, site, request = Publication::Queue.pop
     assert_equal %w[universite site], [university, site]
     assert_equal 'https://github.com/osunyorg/site.git', request['git_url']
     assert_equal 's3', request['sync_method']
@@ -136,7 +136,7 @@ class AppTest < KelmscottTest
   end
 
   def test_publish_without_keys
-    FileUtils.rm_f(Helpers::PRIVATE_KEY_PATH)
+    FileUtils.rm_f(Publication::Variables::PRIVATE_KEY_PATH)
     publish(valid_body)
     assert_equal 503, last_response.status
   end

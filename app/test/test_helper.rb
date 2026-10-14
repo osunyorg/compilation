@@ -14,9 +14,9 @@ module TestPaths
     owner.const_set(name, path)
   end
 
-  replace Publication, :SITES_PATH, File.join(ROOT, 'sites')
-  replace Publication, :STATE_PATH, File.join(ROOT, 'state')
-  replace Helpers, :PRIVATE_KEY_PATH, File.join(ROOT, 'kelmscott.key')
+  replace Publication::Site, :SITES_PATH, File.join(ROOT, 'sites')
+  replace Publication::Site, :STATE_PATH, File.join(ROOT, 'state')
+  replace Publication::Variables, :PRIVATE_KEY_PATH, File.join(ROOT, 'kelmscott.key')
   replace Helpers, :ADMIN_KEY_PATH, File.join(ROOT, 'admin.pub')
 
   Minitest.after_run { FileUtils.rm_rf(ROOT) }
@@ -26,7 +26,7 @@ class KelmscottTest < Minitest::Test
 
   def setup
     FileUtils.rm_rf(Dir[File.join(TestPaths::ROOT, '*')])
-    FileUtils.mkdir_p([Publication::SITES_PATH, Publication::STATE_PATH])
+    FileUtils.mkdir_p([Publication::Site::SITES_PATH, Publication::Site::STATE_PATH])
   end
 
   # Crée la paire de clés de Kelmscott et enregistre la clé publique de signature de l'admin,
@@ -34,7 +34,7 @@ class KelmscottTest < Minitest::Test
   def configure_keys
     private_key = RbNaCl::PrivateKey.generate
     signing_key = RbNaCl::SigningKey.generate
-    File.write(Helpers::PRIVATE_KEY_PATH, Base64.strict_encode64(private_key.to_bytes))
+    File.write(Publication::Variables::PRIVATE_KEY_PATH, Base64.strict_encode64(private_key.to_bytes))
     File.write(Helpers::ADMIN_KEY_PATH, Base64.strict_encode64(signing_key.verify_key.to_bytes))
     [private_key.public_key, signing_key]
   end
@@ -50,12 +50,12 @@ class KelmscottTest < Minitest::Test
   end
 
   def write_state(university, site, extension, content)
-    path = Publication.state_file(university, site, extension)
+    path = Publication::Site.new(university, site).state_file(extension)
     FileUtils.mkdir_p(File.dirname(path))
     File.write(path, content)
   end
 
   def read_state(university, site, extension)
-    File.read(Publication.state_file(university, site, extension), encoding: 'UTF-8')
+    File.read(Publication::Site.new(university, site).state_file(extension), encoding: 'UTF-8')
   end
 end
