@@ -20,7 +20,7 @@ curl -X POST https://kelmscott.osuny.org/noesya/noesya-www \
 ```
 
 - la signature porte sur les octets de `"<horodatage>\nPOST <chemin>\n<corps>"`, signée avec la clé de l'admin (Ed25519) ; une demande de plus de 5 minutes est refusée, et une même demande n'est acceptée qu'une fois (pas de rejeu) ;
-- `git_url` doit être une URL `https://`, sans identifiants, sur une forge autorisée (`GIT_HOSTS` dans `app/lib/helpers.rb` : github.com, gitlab.com) ;
+- `git_url` doit être une URL `https://`, sans identifiants, sur une forge autorisée (liste `GIT_HOSTS` dans `app/lib/helpers.rb`) ;
 - `sync_method` vaut `sftp`, `dxfl`, `rsync` ou `s3` ;
 - `variables` n'accepte que les clés prévues pour la méthode choisie (même liste blanche que `Communication::Website::Variable` dans l'admin) ;
 - les secrets (`SFTP_PASSWORD`, `RSYNC_SSH_PRIVATE_KEY`, `AWS_SECRET_ACCESS_KEY`) sont envoyés tels que stockés par l'admin, chiffrés : Kelmscott les déchiffre en mémoire et ne les écrit nulle part.
