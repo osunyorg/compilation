@@ -1,5 +1,19 @@
 <% content_for :title, 'Kelmscott' %>
 
+<div class="block">
+  <table>
+    <tr>
+      <th>Espace utilisé par Kelmscott</th>
+      <td><%= format_gigabytes(@used_space) %></td>
+    </tr>
+    <tr>
+      <th>Espace libre</th>
+      <td><%= format_gigabytes(@total_space) %></td>
+    </tr>
+  </table>
+</div>
+
+<p>Instances</p>
 <ul>
   <% @universities.each do |university| %>
     <li><a href="<%= university %>"><%= university %></a></li>

@@ -9,6 +9,8 @@ helpers Helpers
 get '/' do
   @title = 'Kelmscott'
   @universities = directories_in(Publication::SITES_PATH)
+  @used_space = used_space
+  @free_space, @total_space = disk_space
   erb :index
 end
 

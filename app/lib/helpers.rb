@@ -31,6 +31,23 @@ module Helpers
     File.exist?(path) ? File.read(path).strip : 'unknown'
   end
 
+  # Somme des espaces disque enregistrés à la fin de chaque publication
+  def used_space
+    Dir[File.join(Publication::STATE_PATH, '*', '*.size')].sum { |path| File.read(path).to_i }
+  end
+
+  # Espace libre et total du disque de Kelmscott, en octets
+  def disk_space
+    _, line = IO.popen(['df', '-Pk', Publication::STATE_PATH], err: File::NULL, &:readlines)
+    return [0, 0] unless line
+    total, _used, free = line.split[1..3].map { |kilobytes| kilobytes.to_i * 1024 }
+    [free, total]
+  end
+
+  def format_gigabytes(bytes)
+    "#{(bytes / 1024.0**3).round(1).to_s.tr('.', ',')} Go"
+  end
+
   # Texte et couleur du badge
   def badge(status)
     case status

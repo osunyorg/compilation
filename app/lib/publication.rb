@@ -51,8 +51,12 @@ class Publication
 
   private
 
+  def site_path
+    @site_path ||= File.join(SITES_PATH, university, site)
+  end
+
   def repository_path
-    @repository_path ||= File.join(SITES_PATH, university, site, 'repository')
+    @repository_path ||= File.join(site_path, 'repository')
   end
 
   def state_path
@@ -65,6 +69,11 @@ class Publication
 
   def status_path
     @status_path ||= File.join(state_path, "#{site}.status")
+  end
+
+  # Espace disque du site, additionné sur l'accueil
+  def size_path
+    @size_path ||= File.join(state_path, "#{site}.size")
   end
 
   # Un seul build à la fois par site, y compris entre workers Puma
@@ -107,15 +116,17 @@ class Publication
 
   # Récapitulatif en fin de log, même en cas d'échec
   def finish
-    File.write(log_path, summary, mode: 'a')
+    size = disk_usage
+    File.write(size_path, size)
+    File.write(log_path, summary(size), mode: 'a')
   end
 
-  def summary
+  def summary(size)
     finished_at = Time.now
     lines = ['', "Fin : #{format_time(finished_at)}"]
     lines += durations.map { |name, duration| "#{name} : #{format_duration(duration)}" }
     lines << "Durée totale : #{format_duration(finished_at - started_at)}"
-    lines << "Poids : #{format_size(size_of(repository_path))}"
+    lines << "Poids : #{format_size(size)}"
     lines.join("\n") + "\n"
   end
 
@@ -152,10 +163,9 @@ class Publication
     time.strftime('%d/%m/%Y %H:%M:%S %Z')
   end
 
-  # Fichiers du dépôt, hors dossiers cachés (.git)
-  def size_of(path)
-    Dir["#{path}/**/*"].select { |file| File.file?(file) }
-                       .sum { |file| File.size(file) }
+  # Espace disque réel du site, en octets : dépôt, .git, node_modules et caches
+  def disk_usage
+    IO.popen(['du', '-sk', site_path], err: File::NULL, &:read).to_i * 1024
   end
 
   def format_size(bytes)
