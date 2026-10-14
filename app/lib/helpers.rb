@@ -10,7 +10,15 @@ module Helpers
   # Au-delà, une demande signée est refusée, pour limiter le rejeu
   SIGNATURE_MAX_AGE = 300
   # Forges depuis lesquelles un dépôt peut être récupéré
-  GIT_HOSTS = %w[github.com gitlab.com].freeze
+  GIT_HOSTS = %w[
+    github.com
+    gitlab.com
+    git.osuny.org
+    forge.osuny.org
+    gitlab.osuny.org
+    gitlab.ecedi.fr
+    gitlab.huma-num.fr
+  ].freeze
 
   def directories_in(path)
     return [] unless File.directory?(path)
