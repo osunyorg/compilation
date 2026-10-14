@@ -62,10 +62,10 @@ class PublicationTest < KelmscottTest
     assert_includes log, 'Compilation simulée'
     assert_includes log, 'Synchronisation simulée'
     %w[Récupération Compilation Synchronisation].each do |step|
-      assert_match(/^#{step} : \d+ s$/, log)
+      assert_match(/^  #{step} : \d+ s$/, log)
     end
     assert_match(/^Fin : /, log)
-    assert_match(/^Durée totale : /, log)
+    assert_match(/^Durée : \d+ s$/, log)
     assert_match(/^Poids : \d+ Mo$/, log)
   end
 
@@ -98,7 +98,7 @@ class PublicationTest < KelmscottTest
     publication.run
     assert_equal 'failure', status
     assert_includes log, 'Récupération du dépôt impossible'
-    refute_match(/^Compilation : /, log)
+    refute_match(/^  Compilation : /, log)
     assert_match(/^Fin : /, log)
   end
 
@@ -108,7 +108,7 @@ class PublicationTest < KelmscottTest
     assert_equal 'failure', status
     assert_includes log, 'Échec de la compilation'
     refute_includes log, 'Synchronisation simulée'
-    refute_match(/^Synchronisation : /, log)
+    refute_match(/^  Synchronisation : /, log)
   end
 
   def test_sync_failure
@@ -116,7 +116,7 @@ class PublicationTest < KelmscottTest
     publication.run
     assert_equal 'failure', status
     assert_includes log, 'Échec de la synchronisation'
-    assert_match(/^Synchronisation : /, log)
+    assert_match(/^  Synchronisation : /, log)
   end
 
   def test_refuses_symbolic_links

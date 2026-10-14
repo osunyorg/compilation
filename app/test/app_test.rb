@@ -68,14 +68,14 @@ class AppTest < KelmscottTest
   end
 
   def test_site_logs_in_utf8_without_lang
-    write_state('universite', 'site', 'log', 'Durée totale : 4 s')
+    write_state('universite', 'site', 'log', 'Durée : 4 s')
     # Comme sous systemd sans LANG ; $VERBOSE masque l'avertissement de Ruby, voulu ici
     default_external, verbose = Encoding.default_external, $VERBOSE
     $VERBOSE = nil
     Encoding.default_external = Encoding::US_ASCII
     get '/universite/site'
     assert last_response.ok?
-    assert_includes last_response.body, 'Durée totale : 4 s'
+    assert_includes last_response.body, 'Durée : 4 s'
   ensure
     Encoding.default_external = default_external
     $VERBOSE = verbose

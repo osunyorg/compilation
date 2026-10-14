@@ -127,8 +127,8 @@ class Publication
   def summary(size)
     finished_at = Time.now
     lines = ['', "Fin : #{format_time(finished_at)}"]
-    lines += durations.map { |name, duration| "#{name} : #{format_duration(duration)}" }
-    lines << "Durée totale : #{format_duration(finished_at - started_at)}"
+    lines << "Durée : #{format_duration(finished_at - started_at)}"
+    lines += durations.map { |name, duration| "  #{name} : #{format_duration(duration)}" }
     lines << "Poids : #{format_size(size)}"
     lines += size_details(size).map { |name, bytes| "  #{name} : #{format_size(bytes)}" }
     lines.join("\n") + "\n"
