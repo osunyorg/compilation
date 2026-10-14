@@ -33,12 +33,12 @@ sudo ufw enable
 
 ### 2. Kelmscott
 
-Le dépôt doit être cloné dans `~/compilation` : le service systemd et la configuration nginx utilisent ce chemin.
+Le dépôt doit être cloné dans `~/kelmscott` : le service systemd et la configuration nginx utilisent ce chemin.
 
 ```bash
 cd ~
-git clone https://github.com/osunyorg/kelmscott.git compilation
-cd compilation
+git clone https://github.com/osunyorg/kelmscott.git
+cd kelmscott
 bin/setup
 ```
 
@@ -139,7 +139,7 @@ Créer un dépôt de test public (par exemple `kelmscott-canary`) qui tente de s
 
 ```sh
 echo "== utilisateur"; id
-echo "== clé privée"; cat /home/*/compilation/app/config/kelmscott.key
+echo "== clé privée"; cat /home/*/kelmscott/app/config/kelmscott.key
 echo "== sites visibles"; ls /srv/kelmscott/sites
 echo "== logs des autres sites"; ls /srv/kelmscott/state
 echo "== sudo"; sudo -n true
@@ -153,7 +153,7 @@ Lancer sa publication depuis la VM, puis lire le log :
 
 ```bash
 curl -X POST https://DOMAINE/test/canary \
-  -H "Authorization: Bearer $(cat ~/compilation/app/config/kelmscott.token)" \
+  -H "Authorization: Bearer $(cat ~/kelmscott/app/config/kelmscott.token)" \
   -H "Content-Type: application/json" \
   -d '{"git_url": "https://github.com/<compte>/kelmscott-canary.git", "sync_method": "dxfl", "variables": {"DXFL_BUCKET": "test"}}'
 sleep 60
@@ -188,7 +188,7 @@ sudo rm -rf /srv/kelmscott/sites/test /srv/kelmscott/state/test
 ## Mise à jour
 
 ```bash
-cd compilation
+cd kelmscott
 git pull
 bin/update
 bin/restart
@@ -207,7 +207,7 @@ En plus de la paire de clés, un **jeton** partagé authentifie les requêtes de
 ### Création
 
 ```bash
-cd compilation
+cd kelmscott
 bin/setup-keys
 ```
 
@@ -245,7 +245,7 @@ Le jeton se renouvelle de la même manière avec `app/config/kelmscott.token`.
 L'admin demande une compilation avec une requête `POST` sur `/:university/:site` :
 
 ```bash
-curl -X POST https://compilation.osuny.org/noesya/noesya-www \
+curl -X POST https://kelmscott.osuny.org/noesya/noesya-www \
   -H "Authorization: Bearer $KELMSCOTT_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
