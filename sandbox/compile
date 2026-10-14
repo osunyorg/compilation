@@ -8,3 +8,6 @@ rm -rf public
 yarn install
 # Compilation
 yarn osuny build
+# yarn upgrade osuny (dans yarn osuny build) ajoute à chaque build une copie du thème dans le cache,
+# jamais supprimée : inutile, puisque le thème est recopié depuis le sous-module
+rm -rf "$(yarn cache dir)"/npm-osuny-*

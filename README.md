@@ -294,7 +294,7 @@ La récupération et la compilation d'un site exécutent du code issu de son dé
 - le build ne voit que le dossier de son site : les autres sites, les logs, `/home` (donc la clé privée et le jeton) sont masqués ;
 - il ne peut écrire que dans le dossier de son site, ni gagner de privilèges (pas de sudo, ni de setuid) ;
 - ses ressources sont limitées (4 Go de mémoire, 2 CPU, 30 minutes), et ses processus sont tués à la fin ;
-- ses caches (yarn, Hugo) sont propres au site : le dossier du site est son `HOME`. Le cache de yarn pèse environ 830 Mo par site, dont 745 Mo pour les binaires de pagefind des 7 plateformes, que yarn télécharge tous alors qu'il n'en installe qu'un.
+- ses caches (yarn, Hugo) sont propres au site : le dossier du site est son `HOME`. Le cache de yarn pèse environ 830 Mo par site, dont 745 Mo pour les binaires de pagefind des 7 plateformes, que yarn télécharge tous alors qu'il n'en installe qu'un. Les copies du thème que `yarn upgrade osuny` y ajoute à chaque build sont supprimées à la fin de la compilation.
 
 La synchronisation, seule à recevoir les secrets déchiffrés, tourne hors sandbox, sous l'utilisateur du service, avec des scripts maîtrisés par Kelmscott.
 
