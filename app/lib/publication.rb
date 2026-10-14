@@ -134,18 +134,16 @@ class Publication
     lines.join("\n") + "\n"
   end
 
-  # Détail du poids : les morceaux mesurés, et par différence ce qui reste du dépôt et des caches
+  # Détail du poids : les morceaux mesurés, et par différence les sources du dépôt et les caches du build
+  # (node_modules n'est qu'un lien vers la toolchain partagée)
   def size_details(size)
     repository = disk_usage(repository_path)
     details = {
       'Site compilé (public)' => disk_usage(File.join(repository_path, 'public')),
-      'Dépendances (node_modules)' => disk_usage(File.join(repository_path, 'node_modules')),
       'Historique git (.git)' => disk_usage(File.join(repository_path, '.git'))
     }
     details['Sources'] = repository - details.values.sum
-    details['Cache yarn'] = disk_usage(File.join(site_path, '.cache', 'yarn'))
-    details['Cache npm'] = disk_usage(File.join(site_path, '.npm'))
-    details['Autres caches'] = size - repository - details['Cache yarn'] - details['Cache npm']
+    details['Caches'] = size - repository
     details
   end
 

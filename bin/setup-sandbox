@@ -19,7 +19,13 @@ sudo install -o root -g root -m 755 sandbox/run /usr/local/sbin/kelmscott-sandbo
 sudo install -d -o root -g root -m 755 /usr/local/lib/kelmscott /etc/kelmscott
 sudo install -o root -g root -m 755 sandbox/fetch sandbox/compile /usr/local/lib/kelmscott/
 
-# Outils (node, yarn, hugo) installés par mise, accessibles en lecture seule dans le sandbox
+# Toolchain : dépendances du thème, installées une fois pour tous les builds, en lecture seule
+(cd toolchain && npm ci --ignore-scripts --no-audit --no-fund)
+sudo rm -rf /usr/local/lib/kelmscott/toolchain
+sudo cp -a toolchain /usr/local/lib/kelmscott/toolchain
+sudo chown -R root:root /usr/local/lib/kelmscott/toolchain
+
+# Outils (node, hugo) installés par mise, accessibles en lecture seule dans le sandbox
 printf 'TOOLS_DIR=%q\nTOOLS_PATH=%q\n' \
   "${MISE_DATA_DIR:-$HOME/.local/share/mise}/installs" \
   "$(mise bin-paths | paste -sd: -)" \

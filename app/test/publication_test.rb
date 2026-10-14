@@ -71,23 +71,18 @@ class PublicationTest < KelmscottTest
 
   def test_size_details
     publication.site_files = {
-      'repository/node_modules/paquet.js' => 3,
       'repository/.git/pack' => 2,
       'repository/content/page.md' => 1,
-      '.cache/yarn/paquet.tgz' => 4,
-      '.npm/pagefind.tgz' => 5,
-      '.cache/hugo/ressource' => 6
+      '.npm/paquet.tgz' => 4,
+      '.cache/hugo/ressource' => 5
     }
     publication.run
-    assert_includes log, "Poids : 21 Mo\n"
+    assert_includes log, "Poids : 12 Mo\n"
     {
       'Site compilé (public)' => 0,
-      'Dépendances (node_modules)' => 3,
       'Historique git (.git)' => 2,
       'Sources' => 1,
-      'Cache yarn' => 4,
-      'Cache npm' => 5,
-      'Autres caches' => 6
+      'Caches' => 9
     }.each do |name, megabytes|
       assert_includes log, "  #{name} : #{megabytes} Mo\n"
     end

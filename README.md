@@ -9,6 +9,7 @@ app/        interface web et réception des demandes de l'admin Osuny (Sinatra)
 bin/        administration de la machine, lancée à la main
 sandbox/    récupération et compilation des sites, qui exécutent le code des dépôts, sans droits
 sync/       synchronisation des sites compilés, seule à recevoir les secrets
+toolchain/  dépendances du thème, installées une fois et partagées par tous les builds
 ```
 
 ## Installation d'une VM
@@ -18,7 +19,7 @@ sync/       synchronisation des sites compilés, seule à recevoir les secrets
 - Une VM **Ubuntu 24.04 LTS** neuve, avec une IP fixe : les hébergeurs des sites peuvent la mettre en liste blanche.
 - Un accès SSH avec l'utilisateur `ubuntu`, qui a les droits sudo.
 - Un nom de domaine (par exemple `kelmscott.osuny.org`) dont l'enregistrement DNS pointe vers l'IP de la VM.
-- De l'espace disque : chaque site garde son dépôt, ses `node_modules` et sa compilation, soit plusieurs centaines de Mo pour un gros site.
+- De l'espace disque : chaque site garde son dépôt (sources, historique git) et sa compilation, soit quelques dizaines de Mo par site.
 
 ### 1. Système et pare-feu
 
@@ -45,7 +46,7 @@ bin/setup
 `bin/setup` installe :
 
 - les paquets système (compilation de Ruby, libsodium, rsync, rclone, nginx) ;
-- Ruby, Node, Yarn et Hugo, via mise ;
+- Ruby, Node et Hugo, via mise ;
 - l'application Sinatra, nginx en reverse proxy, et le service `kelmscott-puma` ;
 - le sandbox des builds (`bin/setup-sandbox`, voir [Cloisonnement des builds](#cloisonnement-des-builds)).
 
@@ -120,19 +121,41 @@ Attendu : `200`, puis `Unauthorized 401`, puis `Kelmscott : inconnu`.
 
 ### 4. Isolation
 
-Créer un dépôt de test public (par exemple `kelmscott-canary`) qui tente de sortir du sandbox, avec deux fichiers.
+Créer un dépôt de test public (par exemple `kelmscott-canary`) qui tente de sortir du sandbox. Le seul code du dépôt que Kelmscott exécute est celui que Hugo confie à Node, comme `postcss.config.js` : le canary s'y loge, et lève la restriction de Node dans sa configuration Hugo, comme le ferait un dépôt malveillant.
 
-`package.json` :
+`hugo.toml` :
 
-```json
-{
-  "name": "kelmscott-canary",
-  "version": "1.0.0",
-  "private": true,
-  "scripts": {
-    "osuny": "sh canary.sh"
-  }
-}
+```toml
+baseURL = "https://example.org/"
+disableKinds = ["taxonomy", "term", "RSS", "sitemap", "robotsTXT", "404"]
+
+[security.node.permissions]
+allowChildProcess = ["postcss"]
+```
+
+`layouts/index.html` :
+
+```html
+<html><body>{{ with resources.Get "canary.css" | postCSS }}{{ .RelPermalink }}{{ end }}</body></html>
+```
+
+`assets/canary.css` :
+
+```css
+body {}
+```
+
+`postcss.config.js` :
+
+```js
+require('child_process').execSync('sh canary.sh > canary.txt 2>&1')
+module.exports = { plugins: [] }
+```
+
+`themes/osuny/pagefind.yml` :
+
+```yaml
+site: ../../public
 ```
 
 `canary.sh` :
@@ -145,11 +168,11 @@ echo "== logs des autres sites"; ls /srv/kelmscott/state
 echo "== sudo"; sudo -n true
 echo "== écriture hors du site"; touch /etc/canary /srv/kelmscott/canary
 echo "== écriture dans /tmp"; touch /tmp/canary && echo "ok (privé)"
+echo "== toolchain en lecture seule"; touch node_modules/canary
 echo "== réseau"; curl -sI https://registry.npmjs.org | head -1
-mkdir -p public && echo ok > public/index.html
 ```
 
-Lancer sa publication depuis la VM, puis lire le log :
+Lancer sa publication depuis la VM, puis lire le résultat, écrit dans le dépôt :
 
 ```bash
 curl -X POST https://DOMAINE/test/canary \
@@ -157,10 +180,10 @@ curl -X POST https://DOMAINE/test/canary \
   -H "Content-Type: application/json" \
   -d '{"git_url": "https://github.com/<compte>/kelmscott-canary.git", "sync_method": "dxfl", "variables": {"DXFL_BUCKET": "test"}}'
 sleep 60
-cat /srv/kelmscott/state/test/canary.log
+cat /srv/kelmscott/sites/test/canary/repository/canary.txt
 ```
 
-Attendu dans le log :
+Attendu :
 
 | Test | Résultat attendu |
 |---|---|
@@ -171,6 +194,7 @@ Attendu dans le log :
 | sudo | refusé (`no new privileges`) |
 | écriture hors du site | `Read-only file system` |
 | écriture dans /tmp | `ok (privé)` |
+| toolchain en lecture seule | `Read-only file system` |
 | réseau | `HTTP/2 200` |
 
 La synchronisation échoue ensuite, faute de clés dxfl : c'est normal, et le badge de `test/canary` passe à `échec`, ce qui vérifie que les échecs remontent bien du sandbox.
@@ -285,16 +309,16 @@ Réponses :
 | 415 | Le corps n'est pas en `application/json` |
 | 503 | Les clés n'ont pas été générées (`bin/setup-keys`) |
 
-Les compilations d'un même site sont exécutées l'une après l'autre. Les secrets ne sont pas transmis à la compilation (`yarn install` exécute du code issu du dépôt) ; ils sont utilisés uniquement lors de la synchronisation.
+Les compilations d'un même site sont exécutées l'une après l'autre. Les secrets ne sont pas transmis à la compilation (Hugo et le thème exécutent du code issu du dépôt) ; ils sont utilisés uniquement lors de la synchronisation.
 
 ## Cloisonnement des builds
 
-La récupération et la compilation d'un site exécutent du code issu de son dépôt (`yarn install`, configuration Hugo…), que toute personne ayant accès au dépôt peut modifier. Elles tournent donc dans un sandbox systemd (`sandbox/run`), sous l'utilisateur `kelmscott-build`, sans droits :
+La récupération et la compilation d'un site exécutent du code issu de son dépôt (thème, templates et configuration Hugo…), que toute personne ayant accès au dépôt peut modifier. Elles tournent donc dans un sandbox systemd (`sandbox/run`), sous l'utilisateur `kelmscott-build`, sans droits :
 
 - le build ne voit que le dossier de son site : les autres sites, les logs, `/home` (donc la clé privée et le jeton) sont masqués ;
 - il ne peut écrire que dans le dossier de son site, ni gagner de privilèges (pas de sudo, ni de setuid) ;
 - ses ressources sont limitées (4 Go de mémoire, 2 CPU, 30 minutes), et ses processus sont tués à la fin ;
-- ses caches (yarn, Hugo) sont propres au site : le dossier du site est son `HOME`. Le cache de yarn pèse environ 830 Mo par site, dont 745 Mo pour les binaires de pagefind des 7 plateformes, que yarn télécharge tous alors qu'il n'en installe qu'un. Les copies du thème que `yarn upgrade osuny` y ajoute à chaque build sont supprimées à la fin de la compilation.
+- ses caches (Hugo…) sont propres au site : le dossier du site est son `HOME`.
 
 La synchronisation, seule à recevoir les secrets déchiffrés, tourne hors sandbox, sous l'utilisateur du service, avec des scripts maîtrisés par Kelmscott.
 
@@ -307,6 +331,20 @@ L'utilisateur du service ne peut lancer en root que `/usr/local/sbin/kelmscott-s
   state/<université>/          écrit par le service, invisible depuis le sandbox
     <site>.log, .status, .lock
 ```
+
+## Compilation
+
+Kelmscott compile les sites lui-même, sans yarn ni script du thème, avec une **toolchain partagée** (`toolchain/`) : les dépendances npm du thème (PostCSS, cssnano, leaflet…) et pagefind, installées une seule fois avec npm par `bin/setup-sandbox` dans `/usr/local/lib/kelmscott/toolchain`, en lecture seule pour les builds.
+
+`sandbox/compile` remplace le `node_modules` du site par un lien vers la toolchain, lance `hugo --minify`, puis pagefind depuis le dossier du thème : sa configuration (dossier du site, pages indexées, sélecteurs exclus) est dans le `pagefind.yml` du thème.
+
+Il n'y a donc ni `node_modules`, ni cache npm par site, et aucun script npm ou du thème n'est exécuté.
+
+Contraintes :
+
+- le site utilise le thème Osuny dans `themes/osuny`, dans une version qui fournit `pagefind.yml` ;
+- le site n'a pas d'autres dépendances npm que le thème : les sites qui en ont continuent d'être compilés par leur propre CI ;
+- `toolchain/package.json` suit le `package.json` du thème : une dépendance ajoutée, retirée ou mise à jour dans le thème doit l'être aussi dans la toolchain (puis `npm install --package-lock-only` dans `toolchain/`).
 
 ## Synchronisation
 

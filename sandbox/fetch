@@ -8,7 +8,7 @@ if [ -d "$repository/.git" ]; then
   # Sans reflog, le gc automatique de git peut supprimer les anciens commits
   git -C "$repository" config core.logAllRefUpdates false
   git -C "$repository" fetch --depth 1
-  # Plutôt qu'un pull : revient exactement à l'état distant (le build modifie yarn.lock)
+  # Plutôt qu'un pull : revient exactement à l'état distant, quelles que soient les modifications locales
   git -C "$repository" reset --hard '@{upstream}'
   git -C "$repository" submodule update --init --recursive --depth 1 --force
 else

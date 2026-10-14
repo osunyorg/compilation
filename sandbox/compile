@@ -1,13 +1,16 @@
 #!/bin/bash
 # Compilation d'un site. Exécuté dans le sandbox (sandbox/run).
+# Les dépendances du thème viennent de la toolchain de Kelmscott (toolchain/), partagée en lecture seule :
+# ni yarn, ni node_modules, ni cache par site, et aucun script npm ou du thème n'est exécuté.
 set -e
 cd "$1"
 # Hugo ne supprime pas les pages retirées du site, il faut le faire
 rm -rf public
-# Premier run, il n'y a pas de node_modules
-yarn install
-# Compilation
-yarn osuny build
-# yarn upgrade osuny (dans yarn osuny build) ajoute à chaque build une copie du thème dans le cache,
-# jamais supprimée : inutile, puisque le thème est recopié depuis le sous-module
-rm -rf "$(yarn cache dir)"/npm-osuny-*
+# Le node_modules du site est remplacé par la toolchain (PostCSS, leaflet…)
+rm -rf node_modules
+ln -s /usr/local/lib/kelmscott/toolchain/node_modules node_modules
+hugo --minify
+# La configuration (dossier du site, pages indexées, sélecteurs exclus) est dans le pagefind.yml du thème,
+# que pagefind lit dans le dossier où il est lancé
+cd themes/osuny
+../../node_modules/.bin/pagefind
