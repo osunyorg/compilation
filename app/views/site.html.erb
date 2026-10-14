@@ -1,3 +1,7 @@
+<% content_for :favicon do %>
+  <link rel="icon" type="image/svg+xml" href="<%= status_favicon(@status) %>">
+<% end %>
+
 <nav class="breadcrumb-nav" aria-label="Fil d’ariane">
   <ol id="breadcrumb" itemscope="" itemtype="https://schema.org/BreadcrumbList" class="breadcrumb">
     <li itemprop="itemListElement" itemscope="" itemtype="https://schema.org/ListItem" class="breadcrumb-item"><a itemprop="item" href="/"><span itemprop="name">Accueil</span></a><meta itemprop="position" content="1"></li>

@@ -81,6 +81,21 @@ class AppTest < KelmscottTest
     $VERBOSE = verbose
   end
 
+  def test_site_favicon_follows_status
+    { nil => '9f9f9f', 'building' => 'dfb317', 'success' => '4c1', 'failure' => 'e05d44' }.each do |status, color|
+      write_state('universite', 'site', 'status', status) if status
+      get '/universite/site'
+      assert_includes last_response.body, %(<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,)
+      assert_includes last_response.body, "fill%3D%27%23#{color}%27"
+      refute_includes last_response.body, 'favicon.ico'
+    end
+  end
+
+  def test_home_keeps_default_favicon
+    get '/'
+    assert_includes last_response.body, '/assets/images/favicons/favicon.ico'
+  end
+
   # Badge
 
   def test_badge_states

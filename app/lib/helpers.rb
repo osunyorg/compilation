@@ -54,6 +54,13 @@ module Helpers
     end
   end
 
+  # Favicon de la vue d'un site : un rond de la couleur de son badge
+  def status_favicon(status)
+    _, color = badge(status)
+    svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><circle cx='8' cy='8' r='8' fill='#{color}'/></svg>"
+    "data:image/svg+xml,#{ERB::Util.url_encode(svg)}"
+  end
+
   def read_config(path)
     File.read(path).strip if File.exist?(path)
   end

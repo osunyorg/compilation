@@ -28,6 +28,7 @@ get '/:university/:site' do
   @site = params[:site]
   @title = @site
   @logs = get_logs(@university, @site)
+  @status = get_status(@university, @site)
   erb :site
 end
 
