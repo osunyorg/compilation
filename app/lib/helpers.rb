@@ -25,6 +25,22 @@ module Helpers
     File.read(path, encoding: 'UTF-8').scrub
   end
 
+  # État de la dernière publication, écrit par Publication
+  def get_status(university, site)
+    path = "#{Publication::REPOSITORIES_PATH}/#{university}/#{site}.status"
+    File.exist?(path) ? File.read(path).strip : 'unknown'
+  end
+
+  # Texte et couleur du badge
+  def badge(status)
+    case status
+    when 'building' then ['en cours', '#dfb317']
+    when 'success' then ['succès', '#4c1']
+    when 'failure' then ['échec', '#e05d44']
+    else ['inconnu', '#9f9f9f']
+    end
+  end
+
   def read_config(path)
     File.read(path).strip if File.exist?(path)
   end

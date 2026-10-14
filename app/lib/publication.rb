@@ -16,35 +16,29 @@ class Publication
   }.freeze
   SECRET_KEYS = %w[SFTP_PASSWORD RSYNC_SSH_PRIVATE_KEY AWS_SECRET_ACCESS_KEY].freeze
 
+  private attr_reader :university,
+                      :site,
+                      :git_url,
+                      :sync_method,
+                      :environment,
+                      :durations,
+                      :started_at
+
   def initialize(university, site, git_url, sync_method, environment)
     @university = university
     @site = site
     @git_url = git_url
     @sync_method = sync_method
     @environment = environment
-    @repository_path = File.join(REPOSITORIES_PATH, university, site)
-    @log_path = File.join(@repository_path, 'log.txt')
     @durations = {}
   end
 
   def run
-    FileUtils.mkdir_p(File.dirname(@repository_path))
-    # Un seul build à la fois par site, y compris entre workers Puma
-    File.open("#{@repository_path}.lock", File::CREAT) do |lock|
-      lock.flock(File::LOCK_EX)
-      started_at = Time.now
-      return error('Récupération du dépôt impossible') unless step('Récupération') { fetch_repository }
-      # Écrit après le clone, qui exige un dossier vide
-      File.write(@log_path, "Début : #{format_time(started_at)}\n\n")
-      begin
-        return error('Échec de la compilation') unless step('Compilation') { compile }
-        return error('Échec de la synchronisation') unless step('Synchronisation') { sync }
-      ensure
-        finished_at = Time.now
-        durations = @durations.map { |name, duration| "#{name} : #{format_duration(duration)}\n" }.join
-        File.write(@log_path, "\nFin : #{format_time(finished_at)}\n#{durations}Durée totale : #{format_duration(finished_at - started_at)}\n" \
-                              "Poids : #{format_size(size_of(@repository_path))}\n", mode: 'a')
-      end
+    lock do
+      start
+      fetched && compiled && synced && succeeded
+    ensure
+      finish
     end
   rescue StandardError => e
     error "#{e.class}: #{e.message}"
@@ -52,39 +46,101 @@ class Publication
 
   private
 
+  def repository_path
+    @repository_path ||= File.join(REPOSITORIES_PATH, university, site)
+  end
+
+  def log_path
+    @log_path ||= File.join(repository_path, 'log.txt')
+  end
+
+  def status_path
+    @status_path ||= "#{repository_path}.status"
+  end
+
+  # Un seul build à la fois par site, y compris entre workers Puma
+  def lock
+    FileUtils.mkdir_p(File.dirname(repository_path))
+    File.open("#{repository_path}.lock", File::CREAT) do |file|
+      file.flock(File::LOCK_EX)
+      yield
+    end
+  end
+
+  def start
+    @started_at = Time.now
+    File.write(status_path, 'building')
+  end
+
+  def fetched
+    return error('Récupération du dépôt impossible') unless step('Récupération') { fetch_repository }
+    # Écrit après le clone, qui exige un dossier vide
+    File.write(log_path, "Début : #{format_time(started_at)}\n\n")
+    @log_started = true
+  end
+
+  def compiled
+    step('Compilation') { compile } || error('Échec de la compilation')
+  end
+
+  def synced
+    step('Synchronisation') { sync } || error('Échec de la synchronisation')
+  end
+
+  def succeeded
+    File.write(status_path, 'success')
+  end
+
+  # Récapitulatif en fin de log, même en cas d'échec
+  def finish
+    return unless @log_started
+    File.write(log_path, summary, mode: 'a')
+  end
+
+  def summary
+    finished_at = Time.now
+    lines = ['', "Fin : #{format_time(finished_at)}"]
+    lines += durations.map { |name, duration| "#{name} : #{format_duration(duration)}" }
+    lines << "Durée totale : #{format_duration(finished_at - started_at)}"
+    lines << "Poids : #{format_size(size_of(repository_path))}"
+    lines.join("\n") + "\n"
+  end
+
   # Mesure la durée d'une étape, y compris en cas d'échec, pour le récapitulatif du log
   def step(name)
-    started_at = Time.now
+    step_started_at = Time.now
     yield
   ensure
-    @durations[name] = Time.now - started_at
+    durations[name] = Time.now - step_started_at
   end
 
   # Clones superficiels : seul le dernier commit est conservé, sans reflog pour que
   # le gc automatique de git puisse supprimer les anciens commits
   def fetch_repository
-    if File.directory?(@repository_path)
-      system('git', '-C', @repository_path, 'config', 'core.logAllRefUpdates', 'false') &&
-        system('git', '-C', @repository_path, 'fetch', '--depth', '1') &&
-        system('git', '-C', @repository_path, 'reset', '--hard', '@{upstream}') &&
-        system('git', '-C', @repository_path, 'submodule', 'update', '--init', '--recursive', '--depth', '1', '--force')
+    if File.directory?(repository_path)
+      system('git', '-C', repository_path, 'config', 'core.logAllRefUpdates', 'false') &&
+        system('git', '-C', repository_path, 'fetch', '--depth', '1') &&
+        system('git', '-C', repository_path, 'reset', '--hard', '@{upstream}') &&
+        system('git', '-C', repository_path, 'submodule', 'update', '--init', '--recursive', '--depth', '1', '--force')
     else
-      system('git', 'clone', '--depth', '1', '--recurse-submodules', '--shallow-submodules', '--', @git_url, @repository_path)
+      system('git', 'clone', '--depth', '1', '--recurse-submodules', '--shallow-submodules', '--', git_url, repository_path)
     end
   end
 
   # Les secrets ne sont pas transmis à la compilation, qui exécute du code du dépôt (yarn install)
   def compile
-    system(COMPILE_PATH, @repository_path)
+    system(COMPILE_PATH, repository_path)
   end
 
   def sync
-    system(@environment, File.join(SYNC_PATH, @sync_method), @repository_path,
-           out: [@log_path, 'a'], err: [:child, :out])
+    system(environment, File.join(SYNC_PATH, sync_method), repository_path,
+           out: [log_path, 'a'], err: [:child, :out])
   end
 
   def error(message)
-    warn "[#{@university}/#{@site}] #{message}"
+    File.write(status_path, 'failure')
+    warn "[#{university}/#{site}] #{message}"
+    false
   end
 
   def format_time(time)

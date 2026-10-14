@@ -28,6 +28,15 @@ get '/:university/:site' do
   erb :site
 end
 
+# Public : affiché par l'admin Osuny, comme le badge d'un workflow GitHub
+get '/:university/:site/badge.svg' do
+  halt 400 unless valid_name?(params[:university]) && valid_name?(params[:site])
+  @text, @color = badge(get_status(params[:university], params[:site]))
+  content_type 'image/svg+xml'
+  cache_control :no_cache
+  erb :'badge.svg', layout: false
+end
+
 post '/:university/:site' do
   halt 503, 'Kelmscott keys are not configured' unless configured?
   halt 401, 'Unauthorized' unless authorized?
