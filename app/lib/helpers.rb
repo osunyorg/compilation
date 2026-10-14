@@ -25,12 +25,6 @@ module Helpers
     File.read(path, encoding: 'UTF-8').scrub
   end
 
-  def get_size(university, site)
-    path = "#{Publication::REPOSITORIES_PATH}/#{university}/#{site}/**/*"
-    Dir[path].select { |f| File.file?(f) }
-             .sum { |f| File.size(f) }
-  end
-
   def read_config(path)
     File.read(path).strip if File.exist?(path)
   end

@@ -23,7 +23,6 @@ end
 get '/:university/:site' do
   @university = params[:university]
   @site = params[:site]
-  @size = get_size(@university, @site)
   @title = @site
   @logs = get_logs(@university, @site)
   erb :site
