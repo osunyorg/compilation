@@ -82,7 +82,7 @@ module Helpers
     return false unless timestamp.match?(/\A\d+\z/) && (Time.now.to_i - timestamp.to_i).abs <= SIGNATURE_MAX_AGE
     signature = Base64.strict_decode64(request.env['HTTP_X_KELMSCOTT_SIGNATURE'].to_s)
     verify_key = RbNaCl::VerifyKey.new(Base64.strict_decode64(read_config(ADMIN_KEY_PATH)))
-    verify_key.verify(signature, "#{timestamp}\n#{request.request_method} #{request.path_info}\n#{body}")
+    verify_key.verify(signature, "#{timestamp}\n#{request.request_method} #{request.path_info}\n#{body}".b)
   rescue ArgumentError, RbNaCl::CryptoError
     false
   end

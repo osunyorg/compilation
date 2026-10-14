@@ -7,6 +7,9 @@ require_relative 'lib/publication'
 
 helpers Helpers, Formats
 
+# Les noms (URL) et les logs (sortie du build, contrôlée par le dépôt du site) sont affichés dans les pages
+set :erb, escape_html: true
+
 get '/' do
   @title = 'Kelmscott'
   @universities = directories_in(Publication::SITES_PATH)
@@ -16,6 +19,7 @@ get '/' do
 end
 
 get '/:university' do
+  halt 400 unless valid_name?(params[:university])
   @university = params[:university]
   @title = @university
   path = File.join(Publication::SITES_PATH, @university)
@@ -24,6 +28,7 @@ get '/:university' do
 end
 
 get '/:university/:site' do
+  halt 400 unless valid_name?(params[:university]) && valid_name?(params[:site])
   @university = params[:university]
   @site = params[:site]
   @title = @site
@@ -43,6 +48,8 @@ end
 
 post '/:university/:site' do
   halt 503, 'Kelmscott keys are not configured' unless configured?
+  # Sinatra a pu lire le corps pour remplir params (formulaire) : on le relit depuis le début
+  request.body.rewind
   body = request.body.read
   halt 401, 'Unauthorized' unless signed?(body)
 

@@ -92,7 +92,7 @@ path = "/test/canary"
 body = { git_url: "https://github.com/<compte>/kelmscott-canary.git", sync_method: "dxfl", variables: { DXFL_BUCKET: "test" } }.to_json
 timestamp = Time.now.to_i.to_s
 signing_key = RbNaCl::SigningKey.new(Base64.strict_decode64(ENV["KELMSCOTT_SIGNING_KEY"]))
-signature = Base64.strict_encode64(signing_key.sign("#{timestamp}\nPOST #{path}\n#{body}"))
+signature = Base64.strict_encode64(signing_key.sign("#{timestamp}\nPOST #{path}\n#{body}".b))
 response = Faraday.post("#{ENV["KELMSCOTT_URL"]}#{path}", body, "Content-Type" => "application/json", "X-Kelmscott-Timestamp" => timestamp, "X-Kelmscott-Signature" => signature)
 response.status
 ```
@@ -124,7 +124,7 @@ La synchronisation échoue ensuite, faute de clés dxfl : c'est normal, et le ba
 
 ## 5. Publication réelle
 
-Activer Kelmscott sur un site dans l'admin Osuny et le publier. Attendu : le log du site (page `https://DOMAINE/<organisation>/<dépôt>`) se termine par les durées et le poids, le badge passe à `succès`, et le site est en ligne.
+Activer Kelmscott sur un site dans l'admin Osuny et le publier. Attendu : le log du site (page `https://DOMAINE/<université>/<dépôt>`) se termine par les durées et le poids, le badge passe à `succès`, et le site est en ligne.
 
 ## 6. Nettoyage
 

@@ -100,6 +100,20 @@ class AppTest < KelmscottTest
     assert_match(%r{<img src="/universite/site/badge.svg" alt="Statut : échec">\s*</p>\s*<pre>Début}, last_response.body)
   end
 
+  def test_site_escapes_logs
+    write_state('universite', 'site', 'log', '<script>alert(1)</script>')
+    get '/universite/site'
+    assert_includes last_response.body, '&lt;script&gt;alert(1)&lt;/script&gt;'
+    refute_includes last_response.body, '<script>alert(1)'
+  end
+
+  def test_invalid_names
+    ['/..universite', '/universite/..site', '/%3Cscript%3E/site'].each do |path|
+      get path
+      assert_equal 400, last_response.status, path
+    end
+  end
+
   def test_home_keeps_default_favicon
     get '/'
     assert_includes last_response.body, '/assets/images/favicons/favicon.ico'

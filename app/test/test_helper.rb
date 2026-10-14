@@ -41,7 +41,7 @@ class KelmscottTest < Minitest::Test
 
   # Signe une demande comme le fait l'admin Osuny
   def sign(signing_key, timestamp, path, body)
-    Base64.strict_encode64(signing_key.sign("#{timestamp}\nPOST #{path}\n#{body}"))
+    Base64.strict_encode64(signing_key.sign("#{timestamp}\nPOST #{path}\n#{body}".b))
   end
 
   # Chiffre un secret comme le fait l'admin Osuny

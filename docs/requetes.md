@@ -1,6 +1,6 @@
 # Requêtes de l'admin Osuny
 
-L'admin demande une compilation avec une requête `POST` sur `/:university/:site`. Il utilise le chemin du dépôt (`organisation/dépôt`), qui sert aussi pour le badge (`/:university/:site/badge.svg`) :
+L'admin demande une compilation avec une requête `POST` sur `/:university/:site`. `university` est l'identifiant de l'université dans l'admin, `site` le nom du dépôt du site (sans l'organisation). Le même chemin sert pour le badge (`/:university/:site/badge.svg`) :
 
 ```bash
 curl -X POST https://kelmscott.osuny.org/noesya/noesya-www \
@@ -19,7 +19,7 @@ curl -X POST https://kelmscott.osuny.org/noesya/noesya-www \
   }'
 ```
 
-- la signature porte sur `"<horodatage>\nPOST <chemin>\n<corps>"`, signée avec la clé de l'admin (Ed25519) ; une demande de plus de 5 minutes est refusée, ce qui limite le rejeu ;
+- la signature porte sur les octets de `"<horodatage>\nPOST <chemin>\n<corps>"`, signée avec la clé de l'admin (Ed25519) ; une demande de plus de 5 minutes est refusée, ce qui limite le rejeu ;
 - `git_url` doit être une URL `https://`, sans identifiants, sur une forge autorisée (`GIT_HOSTS` dans `app/lib/helpers.rb` : github.com, gitlab.com) ;
 - `sync_method` vaut `sftp`, `dxfl`, `rsync` ou `s3` ;
 - `variables` n'accepte que les clés prévues pour la méthode choisie (même liste blanche que `Communication::Website::Variable` dans l'admin) ;
