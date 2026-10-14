@@ -8,5 +8,5 @@ source bin/lib/as-service.sh
 cd app
 # Config locale (app/.bundle/config), réappliquée à chaque fois pour corriger une machine mal configurée
 as_service bundle config set --local deployment true
-as_service bundle config set --local without "development test"
+as_service bundle config set --local without "development:test"
 as_service bundle install
