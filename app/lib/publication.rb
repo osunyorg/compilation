@@ -119,7 +119,7 @@ class Publication
 
   # Récapitulatif en fin de log, même en cas d'échec
   def finish
-    size = disk_usage
+    size = disk_usage(site_path)
     File.write(size_path, size)
     File.write(log_path, summary(size), mode: 'a')
   end
@@ -130,7 +130,23 @@ class Publication
     lines += durations.map { |name, duration| "#{name} : #{format_duration(duration)}" }
     lines << "Durée totale : #{format_duration(finished_at - started_at)}"
     lines << "Poids : #{format_size(size)}"
+    lines += size_details(size).map { |name, bytes| "  #{name} : #{format_size(bytes)}" }
     lines.join("\n") + "\n"
+  end
+
+  # Détail du poids : les morceaux mesurés, et par différence ce qui reste du dépôt et des caches
+  def size_details(size)
+    repository = disk_usage(repository_path)
+    details = {
+      'Site compilé (public)' => disk_usage(File.join(repository_path, 'public')),
+      'Dépendances (node_modules)' => disk_usage(File.join(repository_path, 'node_modules')),
+      'Historique git (.git)' => disk_usage(File.join(repository_path, '.git'))
+    }
+    details['Sources'] = repository - details.values.sum
+    details['Cache yarn'] = disk_usage(File.join(site_path, '.cache', 'yarn'))
+    details['Cache npm'] = disk_usage(File.join(site_path, '.npm'))
+    details['Autres caches'] = size - repository - details['Cache yarn'] - details['Cache npm']
+    details
   end
 
   # Mesure la durée d'une étape, y compris en cas d'échec, pour le récapitulatif du log
@@ -162,8 +178,8 @@ class Publication
     false
   end
 
-  # Espace disque réel du site, en octets : dépôt, .git, node_modules et caches
-  def disk_usage
-    IO.popen(['du', '-sk', site_path], err: File::NULL, &:read).to_i * 1024
+  # Espace disque réel d'un dossier, en octets (0 s'il n'existe pas)
+  def disk_usage(path)
+    IO.popen(['du', '-sk', path], err: File::NULL, &:read).to_i * 1024
   end
 end

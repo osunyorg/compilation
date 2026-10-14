@@ -54,10 +54,10 @@ class AppTest < KelmscottTest
     FileUtils.mkdir_p(File.join(Publication::SITES_PATH, 'universite', 'site'))
     get '/'
     assert last_response.ok?
-    free_space, = Object.new.extend(Helpers).disk_space
+    free_space, total_space = Object.new.extend(Helpers).disk_space
     assert_includes last_response.body, 'universite'
     assert_match(%r{<th>Espace utilisé par Kelmscott</th>\s*<td>5,0 Go</td>}, last_response.body)
-    assert_match(%r{<th>Espace libre</th>\s*<td>#{Regexp.escape(Formats.format_size(free_space))}</td>}, last_response.body)
+    assert_match(%r{<th>Espace libre</th>\s*<td>#{Regexp.escape("#{Formats.format_size(free_space)} sur #{Formats.format_size(total_space)}")}</td>}, last_response.body)
   end
 
   def test_university

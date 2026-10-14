@@ -3,7 +3,7 @@ require_relative 'test_helper'
 class PublicationTest < KelmscottTest
   # Remplace le sandbox et la synchronisation, qui ne tournent que sur le serveur
   class FakePublication < Publication
-    attr_accessor :fetch_result, :compile_result, :sync_result, :public_files, :public_links, :error_to_raise
+    attr_accessor :fetch_result, :compile_result, :sync_result, :public_files, :public_links, :site_files, :error_to_raise
 
     def initialize(*)
       super
@@ -12,6 +12,8 @@ class PublicationTest < KelmscottTest
       @sync_result = true
       @public_files = ['index.html']
       @public_links = []
+      # Chemin dans le dossier du site => taille en Mo
+      @site_files = {}
     end
 
     private
@@ -23,6 +25,11 @@ class PublicationTest < KelmscottTest
       FileUtils.mkdir_p(public_path)
       public_files.each { |file| File.write(File.join(public_path, file), 'ok') }
       public_links.each { |link| File.symlink('/etc/hosts', File.join(public_path, link)) }
+      site_files.each do |file, megabytes|
+        path = File.join(site_path, file)
+        FileUtils.mkdir_p(File.dirname(path))
+        File.write(path, 'x' * megabytes * 1024**2)
+      end
       execute('echo', 'Compilation simulée')
       compile_result
     end
@@ -60,6 +67,30 @@ class PublicationTest < KelmscottTest
     assert_match(/^Fin : /, log)
     assert_match(/^Durée totale : /, log)
     assert_match(/^Poids : \d+ Mo$/, log)
+  end
+
+  def test_size_details
+    publication.site_files = {
+      'repository/node_modules/paquet.js' => 3,
+      'repository/.git/pack' => 2,
+      'repository/content/page.md' => 1,
+      '.cache/yarn/paquet.tgz' => 4,
+      '.npm/pagefind.tgz' => 5,
+      '.cache/hugo/ressource' => 6
+    }
+    publication.run
+    assert_includes log, "Poids : 21 Mo\n"
+    {
+      'Site compilé (public)' => 0,
+      'Dépendances (node_modules)' => 3,
+      'Historique git (.git)' => 2,
+      'Sources' => 1,
+      'Cache yarn' => 4,
+      'Cache npm' => 5,
+      'Autres caches' => 6
+    }.each do |name, megabytes|
+      assert_includes log, "  #{name} : #{megabytes} Mo\n"
+    end
   end
 
   def test_records_disk_usage
