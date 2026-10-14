@@ -1,10 +1,18 @@
 #!/bin/bash
 # Synchronisation vers Deuxfleurs avec dxfl (https://git.deuxfleurs.fr/Deuxfleurs/dxfl)
 # Le deuxfleurs.toml du dépôt (redirections, en-têtes) est lu s'il existe.
+#
+# Le dépôt est entièrement contrôlé par le build : rien n'y est résolu ni installé.
+# dxfl vient de la toolchain (root, version figée par le package-lock), sans npx,
+# qui lirait le .npmrc et le node_modules du dépôt.
 set -euo pipefail
 : "${DXFL_BUCKET:?DXFL_BUCKET manquant}"
 : "${AWS_ACCESS_KEY_ID:?AWS_ACCESS_KEY_ID manquant}"
 : "${AWS_SECRET_ACCESS_KEY:?AWS_SECRET_ACCESS_KEY manquant}"
+
+# Node par son chemin réel, écrit par bin/steps/sandbox : les shims mise liraient la configuration du dépôt
+source /etc/kelmscott/sandbox.env
+export PATH="$TOOLS_PATH:/usr/local/bin:/usr/bin:/bin"
+
 cd "$1"
-# Version figée, téléchargée et mise en cache par npx au premier lancement
-npx --yes dxfl@0.7.0 deploy "$DXFL_BUCKET" public/ --yes
+/usr/local/lib/kelmscott/toolchain/node_modules/.bin/dxfl deploy "$DXFL_BUCKET" public/ --yes

@@ -5,8 +5,8 @@ cd "$(dirname "$0")/.."
 # Build tools needed for Ruby (compiled by mise) and rbnacl
 sudo apt install -y build-essential curl libsodium-dev libssl-dev libyaml-dev zlib1g-dev libffi-dev libreadline-dev
 
-# Synchronisation des sites (sync/)
-sudo apt install -y openssh-client rsync rclone
+# Synchronisation des sites (sync/) ; rclone est installé avec mise, en version figée (bin/steps/tools)
+sudo apt install -y openssh-client rsync
 
 # Install Mise
 if [ ! -x ~/.local/bin/mise ]; then
@@ -17,9 +17,7 @@ fi
 export PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:$PATH"
 
 # Install tools via Mise
-mise use -g ruby@4.0.6
-mise use -g hugo-extended@0.165.0
-mise use -g node@26
+bin/steps/tools
 
 # Sinatra
 ## Build the app

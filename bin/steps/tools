@@ -1,0 +1,13 @@
+#!/bin/bash
+# Installe les outils avec mise, en versions figées. Lancé par bin/setup et bin/update :
+# changer une version ici suffit, la prochaine mise à jour l'installe.
+set -e
+cd "$(dirname "$0")/../.."
+
+source bin/lib/as-service.sh
+
+as_service "$MISE" use -g ruby@4.0.6
+as_service "$MISE" use -g hugo-extended@0.165.0
+as_service "$MISE" use -g node@26
+# Synchronisation sftp et s3 : le paquet Ubuntu est ancien, et sans correctifs de sécurité (universe)
+as_service "$MISE" use -g rclone@1

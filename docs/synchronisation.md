@@ -2,11 +2,15 @@
 
 Les scripts de synchronisation sont dans Kelmscott (`sync/`), et non dans les dépôts des sites : seul du code maîtrisé par Kelmscott a accès aux secrets déchiffrés.
 
+rsync et ssh viennent des paquets Ubuntu, mis à jour par le système. rclone est installé avec mise, en version figée dans `bin/steps/tools`, car le paquet Ubuntu est ancien et ne reçoit pas de correctifs de sécurité.
+
 Après une compilation réussie, Kelmscott lance `sync/<sync_method>` avec le chemin du dépôt, et uniquement les variables de la méthode choisie dans son environnement. Le dossier envoyé est toujours `public/` ; la publication est refusée s'il contient un lien symbolique. Aucun secret n'est écrit sur le disque. La sortie est ajoutée au log du site.
 
 ## dxfl
 
 Envoi vers Deuxfleurs avec [dxfl](https://git.deuxfleurs.fr/Deuxfleurs/dxfl). Le fichier `deuxfleurs.toml` du dépôt (redirections, en-têtes) est pris en compte.
+
+dxfl est installé dans la toolchain, en version figée, et lancé par son chemin absolu : jamais avec `npx` dans le dépôt, dont le `.npmrc` et le `node_modules` sont contrôlés par le build.
 
 Variables, à récupérer dans l'onglet S3 du Guichet Deuxfleurs :
 

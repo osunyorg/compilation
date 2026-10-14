@@ -7,11 +7,11 @@ bin/        administration de la machine, lancée à la main
   update      mise à jour
   configure/  clés et HTTPS
   service/    démarrage et redémarrage du service
-  steps/      étapes lancées par setup et update (gems, sandbox)
+  steps/      étapes lancées par setup et update (outils, gems, sandbox)
   lib/        fonctions communes aux scripts
 sandbox/    récupération et compilation des sites, qui exécutent le code des dépôts, sans droits
 sync/       synchronisation des sites compilés, seule à recevoir les secrets
-toolchain/  dépendances du thème, installées une fois et partagées par tous les builds
+toolchain/  dépendances du thème et dxfl, installées une fois et partagées en lecture seule (update : mise à jour des versions)
 ```
 
 ## Prérequis
@@ -43,8 +43,8 @@ git clone https://github.com/osunyorg/kelmscott.git ~/kelmscott
 
 `bin/setup` installe :
 
-- les paquets système (compilation de Ruby, libsodium, rsync, rclone, nginx) ;
-- Ruby, Node et Hugo, via mise ;
+- les paquets système (compilation de Ruby, libsodium, rsync, nginx) ;
+- Ruby, Node, Hugo et rclone, via mise, en versions figées dans `bin/steps/tools` ;
 - l'application Sinatra, nginx en reverse proxy, et le service `kelmscott-puma` ;
 - le sandbox des builds (`bin/steps/sandbox`, voir [Cloisonnement des builds](cloisonnement.md)).
 

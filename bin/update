@@ -10,6 +10,7 @@ if [ "$1" != "--pulled" ]; then
   as_service git pull
   exec bin/update --pulled
 fi
+bin/steps/tools
 bin/steps/app
 # Copies root des scripts du sandbox
 bin/steps/sandbox

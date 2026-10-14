@@ -1,10 +1,11 @@
 {
   "name": "kelmscott-toolchain",
   "private": true,
-  "description": "Dépendances du thème Osuny, installées une fois et partagées en lecture seule par tous les builds",
+  "description": "Dépendances du thème Osuny, installées une fois et partagées en lecture seule par tous les builds, et dxfl pour la synchronisation",
   "dependencies": {
     "autoprefixer": "^10.4.21",
     "cssnano": "^5",
+    "dxfl": "0.7.0",
     "intersection-observer": "^0",
     "leaflet": "^1",
     "pagefind": "1.5.2",

@@ -1,0 +1,8 @@
+#!/bin/bash
+# Met à jour les versions de la toolchain dans les plages de package.json, sans rien installer ni exécuter.
+# À lancer sur un poste de développement, puis commiter package-lock.json :
+# sur la VM, bin/update réinstalle ensuite la toolchain à l'identique (npm ci).
+set -e
+cd "$(dirname "$0")"
+npm update --package-lock-only --ignore-scripts --no-audit --no-fund
+git --no-pager diff --stat -- package-lock.json

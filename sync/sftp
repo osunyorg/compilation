@@ -7,6 +7,10 @@ set -euo pipefail
 : "${SFTP_PASSWORD:?SFTP_PASSWORD manquant}"
 : "${SFTP_PATH:?SFTP_PATH manquant}"
 
+# rclone installé par mise, par son chemin réel (écrit par bin/steps/sandbox)
+source /etc/kelmscott/sandbox.env
+export PATH="$TOOLS_PATH:/usr/local/bin:/usr/bin:/bin"
+
 export RCLONE_CONFIG_DEST_TYPE=sftp
 export RCLONE_CONFIG_DEST_HOST="$SFTP_HOST"
 export RCLONE_CONFIG_DEST_PORT="${SFTP_PORT:-22}"

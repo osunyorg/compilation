@@ -30,7 +30,7 @@ sudo chown -R root:root /usr/local/lib/kelmscott/toolchain
 # Outils (node, hugo) installés par mise, accessibles en lecture seule dans le sandbox
 printf 'TOOLS_DIR=%q\nTOOLS_PATH=%q\n' \
   "$SERVICE_HOME/.local/share/mise/installs" \
-  "$(as_service mise bin-paths | paste -sd: -)" \
+  "$(as_service "$MISE" bin-paths | paste -sd: -)" \
   | sudo tee /etc/kelmscott/sandbox.env > /dev/null
 
 # L'utilisateur du service peut lancer le sandbox, et rien d'autre en root par ce biais

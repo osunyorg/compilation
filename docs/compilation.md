@@ -10,4 +10,14 @@ Contraintes :
 
 - le site utilise le thème osuny dans `themes/osuny`, dans une version qui fournit `pagefind.yml` ;
 - le site n'a pas d'autres dépendances npm que le thème : les sites qui en ont continuent d'être compilés par leur propre CI ;
-- `toolchain/package.json` suit le `package.json` du thème : une dépendance ajoutée, retirée ou mise à jour dans le thème doit l'être aussi dans la toolchain (puis `npm install --package-lock-only` dans `toolchain/`).
+- `toolchain/package.json` liste ce que le build du thème utilise réellement (son `postcss.config.js` et pagefind), et non une copie de son `package.json`. Seule exception, `dxfl`, utilisé par la synchronisation et non par le build.
+
+## Mise à jour de la toolchain
+
+Sur un poste de développement :
+
+```bash
+kelmscott/toolchain/update
+```
+
+Le script met à jour `package-lock.json` dans les plages de `package.json`, sans rien installer ni exécuter. Pour ajouter, retirer ou changer la plage d'une dépendance, modifier d'abord `package.json`. Commiter ensuite `package-lock.json` : sur la VM, `~/kelmscott/bin/update` réinstalle la toolchain à l'identique (`npm ci`).
