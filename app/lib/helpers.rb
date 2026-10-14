@@ -1,4 +1,6 @@
 require 'base64'
+require 'digest'
+require 'fileutils'
 require 'rbnacl'
 require 'uri'
 
@@ -84,6 +86,24 @@ module Helpers
     verify_key = RbNaCl::VerifyKey.new(Base64.strict_decode64(read_config(ADMIN_KEY_PATH)))
     verify_key.verify(signature, "#{timestamp}\n#{request.request_method} #{request.path_info}\n#{body}".b)
   rescue ArgumentError, RbNaCl::CryptoError
+    false
+  end
+
+  # Une signature n'est acceptée qu'une fois : une demande interceptée ne peut pas être rejouée.
+  # Ed25519 est déterministe, une même demande donne la même signature ; une nouvelle demande a un autre horodatage.
+  # Un fichier par signature, créé de façon atomique : valable entre les processus Puma.
+  def first_use?
+    path = File.join(Publication::STATE_PATH, '.signatures')
+    FileUtils.mkdir_p(path)
+    Dir.glob(File.join(path, '*')).each do |file|
+      File.delete(file) if Time.now - File.mtime(file) > 2 * SIGNATURE_MAX_AGE
+    rescue Errno::ENOENT
+      # Déjà supprimé par un autre processus
+    end
+    signature = request.env['HTTP_X_KELMSCOTT_SIGNATURE'].to_s
+    File.open(File.join(path, Digest::SHA256.hexdigest(signature)), File::CREAT | File::EXCL | File::WRONLY).close
+    true
+  rescue Errno::EEXIST
     false
   end
 

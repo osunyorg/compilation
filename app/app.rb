@@ -53,6 +53,7 @@ post '/:university/:site' do
   request.body.rewind
   body = request.body.read
   halt 401, 'Unauthorized' unless signed?(body)
+  halt 409, 'Request already received' unless first_use?
 
   university = params[:university]
   site = params[:site]
@@ -81,7 +82,12 @@ post '/:university/:site' do
   end
   environment = variables.merge(secrets)
 
-  Thread.new { Publication.new(university, site, git_url, sync_method, environment).run }
+  halt 503, 'Too many publications, retry later' unless Publication.reserve
+  Thread.new do
+    Publication.new(university, site, git_url, sync_method, environment).run
+  ensure
+    Publication.release
+  end
   status 202
   'Accepted'
 end

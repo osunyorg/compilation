@@ -174,6 +174,24 @@ class AppTest < KelmscottTest
     assert_equal 401, last_response.status
   end
 
+  # La même demande, à l'identique (le chiffrement des secrets est aléatoire : on réutilise le corps)
+  def test_publish_replayed
+    body = valid_body.to_json
+    timestamp = Time.now.to_i
+    recording_publication { publish(body, timestamp: timestamp) }
+    assert_equal 202, last_response.status
+    publish(body, timestamp: timestamp)
+    assert_equal 409, last_response.status
+  end
+
+  def test_publish_too_many
+    Publication::MAX_RUNNING.times { Publication.reserve }
+    publish(valid_body)
+    assert_equal 503, last_response.status
+  ensure
+    Publication::MAX_RUNNING.times { Publication.release }
+  end
+
   def test_publish_without_admin_key
     FileUtils.rm_f(Helpers::ADMIN_KEY_PATH)
     publish(valid_body)

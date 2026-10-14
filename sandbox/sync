@@ -1,0 +1,14 @@
+#!/bin/bash
+# Synchronisation d'un site. Exécuté dans le sandbox (sandbox/run), sous kelmscott-sync.
+# Les variables du site arrivent sur l'entrée standard, une par ligne : NOM=valeur en base 64.
+# Elles ne passent ni par les arguments (visibles dans ps), ni par l'environnement de l'unité (visible dans systemctl show).
+set -euo pipefail
+method="$1"
+repository="$2"
+while IFS='=' read -r name value; do
+  # Seulement des variables de synchronisation : jamais PATH, HOME, LD_PRELOAD…
+  [[ "$name" =~ ^(SFTP|RSYNC|S3|AWS|DXFL)_[A-Z0-9_]+$ ]] || { echo "kelmscott-sync : variable refusée" >&2; exit 2; }
+  value="$(printf '%s' "$value" | base64 --decode)"
+  export "$name=$value"
+done
+exec "/usr/local/lib/kelmscott/methods/$method" "$repository"

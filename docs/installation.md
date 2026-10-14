@@ -9,7 +9,7 @@ bin/        administration de la machine, lancée à la main
   service/    démarrage et redémarrage du service
   steps/      étapes lancées par setup et update (outils, gems, sandbox)
   lib/        fonctions communes aux scripts
-sandbox/    récupération et compilation des sites, qui exécutent le code des dépôts, sans droits
+sandbox/    récupération, compilation et synchronisation des sites, chacune dans un sandbox sans droits
 sync/       synchronisation des sites compilés, seule à recevoir les secrets
 toolchain/  dépendances du thème et dxfl, installées une fois et partagées en lecture seule (update : mise à jour des versions)
 ```
@@ -46,7 +46,7 @@ git clone https://github.com/osunyorg/kelmscott.git ~/kelmscott
 - les paquets système (compilation de Ruby, libsodium, rsync, nginx) ;
 - Ruby, Node, Hugo et rclone, via mise, en versions figées dans `bin/steps/tools` ;
 - l'application Sinatra, nginx en reverse proxy, et le service `kelmscott-puma` ;
-- le sandbox des builds (`bin/steps/sandbox`, voir [Cloisonnement des builds](cloisonnement.md)).
+- le sandbox des builds et des synchronisations (`bin/steps/sandbox`, voir [Cloisonnement des builds](cloisonnement.md)).
 
 Il faut ensuite ouvrir une nouvelle session SSH, pour que mise soit actif dans le shell.
 
@@ -77,7 +77,7 @@ Reporter la clé publique affichée dans la configuration de l'admin Osuny, et s
 
 ## 6. Restriction de sudo (recommandé)
 
-Sur les images cloud, `ubuntu` a généralement un sudo complet sans mot de passe. Les builds n'y ont pas accès (ils tournent sous `kelmscott-build`), mais si le service était compromis, il obtiendrait root. Une fois l'installation terminée, on peut ne lui laisser que le sandbox et le redémarrage du service, en remplaçant la ligne `ubuntu` de `/etc/sudoers.d/90-cloud-init-users` par :
+Sur les images cloud, `ubuntu` a généralement un sudo complet sans mot de passe. Les builds et les synchronisations n'y ont pas accès (ils tournent sous `kelmscott-build` et `kelmscott-sync`), mais si le service était compromis, il obtiendrait root. Une fois l'installation terminée, on peut ne lui laisser que le sandbox et le redémarrage du service, en remplaçant la ligne `ubuntu` de `/etc/sudoers.d/90-cloud-init-users` par :
 
 ```
 ubuntu ALL=(root) NOPASSWD: /usr/bin/systemctl restart kelmscott-puma.service, /usr/bin/systemctl start kelmscott-puma.service

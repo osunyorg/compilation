@@ -19,7 +19,7 @@ curl -X POST https://kelmscott.osuny.org/noesya/noesya-www \
   }'
 ```
 
-- la signature porte sur les octets de `"<horodatage>\nPOST <chemin>\n<corps>"`, signée avec la clé de l'admin (Ed25519) ; une demande de plus de 5 minutes est refusée, ce qui limite le rejeu ;
+- la signature porte sur les octets de `"<horodatage>\nPOST <chemin>\n<corps>"`, signée avec la clé de l'admin (Ed25519) ; une demande de plus de 5 minutes est refusée, et une même demande n'est acceptée qu'une fois (pas de rejeu) ;
 - `git_url` doit être une URL `https://`, sans identifiants, sur une forge autorisée (`GIT_HOSTS` dans `app/lib/helpers.rb` : github.com, gitlab.com) ;
 - `sync_method` vaut `sftp`, `dxfl`, `rsync` ou `s3` ;
 - `variables` n'accepte que les clés prévues pour la méthode choisie (même liste blanche que `Communication::Website::Variable` dans l'admin) ;
@@ -32,7 +32,8 @@ Réponses :
 | 202 | Demande acceptée, le clone/pull, la compilation puis la synchronisation s'exécutent en arrière-plan |
 | 400 | Paramètres invalides, ou secret impossible à déchiffrer (mauvaise clé publique dans l'admin) |
 | 401 | Signature absente, invalide ou expirée |
+| 409 | Demande déjà reçue (rejeu) |
 | 415 | Le corps n'est pas en `application/json` |
-| 503 | Les clés n'ont pas été configurées (`bin/configure/keys`) |
+| 503 | Les clés n'ont pas été configurées (`bin/configure/keys`), ou trop de publications en cours : l'admin réessaie plus tard |
 
-Les compilations d'un même site sont exécutées l'une après l'autre. Les secrets ne sont pas transmis à la compilation (Hugo et le thème exécutent du code issu du dépôt) ; ils sont utilisés uniquement lors de la synchronisation.
+Les compilations d'un même site sont exécutées l'une après l'autre, et au plus deux publications tournent en même temps par processus Puma (`Publication::MAX_RUNNING`). Les secrets ne sont pas transmis à la compilation (Hugo et le thème exécutent du code issu du dépôt) ; ils sont utilisés uniquement lors de la synchronisation.

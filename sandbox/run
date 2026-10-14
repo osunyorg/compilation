@@ -1,6 +1,7 @@
 #!/bin/bash
-# Lance une étape du build (fetch ou compile) d'un site dans un sandbox systemd,
-# sous l'utilisateur kelmscott-build, sans droits.
+# Lance une étape de la publication d'un site dans un sandbox systemd, sans droits :
+# - fetch et compile, sous kelmscott-build : elles exécutent du code du dépôt, sans les secrets ;
+# - sync, sous kelmscott-sync : elle reçoit les variables du site sur l'entrée standard, sans accès aux clés.
 #
 # Exécuté par root : bin/steps/sandbox l'installe dans /usr/local/sbin/kelmscott-sandbox,
 # seul programme que l'utilisateur du service peut lancer avec sudo.
@@ -8,17 +9,18 @@
 #
 # Usage : kelmscott-sandbox fetch UNIVERSITY SITE GIT_URL
 #         kelmscott-sandbox compile UNIVERSITY SITE
+#         kelmscott-sandbox sync UNIVERSITY SITE SYNC_METHOD < variables
 set -euo pipefail
 
 DATA=/srv/kelmscott
-BUILD_USER=kelmscott-build
+LIB=/usr/local/lib/kelmscott
 # Outils installés par mise (TOOLS_DIR, TOOLS_PATH), écrit par bin/steps/sandbox
 source /etc/kelmscott/sandbox.env
 
 command="${1:-}"
 university="${2:-}"
 site="${3:-}"
-git_url="${4:-}"
+argument="${4:-}"
 
 fail() {
   echo "kelmscott-sandbox : $1" >&2
@@ -26,8 +28,9 @@ fail() {
 }
 
 case "$command" in
-  fetch) [[ "$git_url" == https://* ]] || fail "URL invalide" ;;
+  fetch) [[ "$argument" == https://* ]] || fail "URL invalide" ;;
   compile) ;;
+  sync) [[ "$argument" =~ ^(sftp|dxfl|rsync|s3)$ ]] || fail "méthode de synchronisation invalide" ;;
   *) fail "commande inconnue" ;;
 esac
 # Comme valid_name? dans l'app : pas de '/', ni de nom commençant par '.'
@@ -39,18 +42,39 @@ name='^[A-Za-z0-9_-][A-Za-z0-9_.-]*$'
 # par un lien symbolique. Root ne touche jamais à l'intérieur du dossier du site.
 site_dir="$DATA/sites/$university/$site"
 install -d -o root -g root -m 755 "$DATA/sites/$university"
-[ -d "$site_dir" ] || install -d -o "$BUILD_USER" -g "$BUILD_USER" -m 755 "$site_dir"
+[ -d "$site_dir" ] || install -d -o kelmscott-build -g kelmscott-build -m 755 "$site_dir"
 
-# Le build ne voit que le dossier de son site (les autres sites, les logs et /home sont masqués),
-# ne peut écrire nulle part ailleurs, ne peut pas gagner de privilèges et a des ressources limitées.
-# Les processus restants sont tués à la fin.
+if [ "$command" = sync ]; then
+  [ -d "$site_dir/repository" ] || fail "dépôt absent"
+  # La synchronisation ne voit que le dépôt de son site, en lecture seule.
+  # Son HOME persiste entre les publications (clés des hôtes ssh).
+  user=kelmscott-sync
+  specific=(
+    --working-directory=/var/lib/kelmscott-sync
+    --property=BindReadOnlyPaths="$site_dir/repository"
+    --property=StateDirectory=kelmscott-sync
+    --setenv=HOME=/var/lib/kelmscott-sync
+  )
+  program=("$LIB/sync" "$argument" "$site_dir/repository")
+else
+  # Le build ne voit que le dossier de son site, et ne peut écrire nulle part ailleurs.
+  user=kelmscott-build
+  specific=(
+    --working-directory="$site_dir"
+    --property=BindPaths="$site_dir"
+    --setenv=HOME="$site_dir"
+  )
+  program=("$LIB/$command" "$site_dir/repository" "$argument")
+fi
+
+# Les autres sites, les logs et /home (donc les clés) sont masqués. Pas de gain de privilèges,
+# des ressources et une durée limitées. Les processus restants sont tués à la fin.
 exec systemd-run --wait --pipe --collect --quiet \
-  --uid="$BUILD_USER" --gid="$BUILD_USER" \
-  --working-directory="$site_dir" \
+  --uid="$user" --gid="$user" \
+  "${specific[@]}" \
   --property=ProtectSystem=strict \
   --property=ProtectHome=tmpfs \
   --property=TemporaryFileSystem="$DATA:ro" \
-  --property=BindPaths="$site_dir" \
   --property=BindReadOnlyPaths="$TOOLS_DIR" \
   --property=PrivateTmp=yes \
   --property=PrivateDevices=yes \
@@ -65,7 +89,6 @@ exec systemd-run --wait --pipe --collect --quiet \
   --property=CPUQuota=200% \
   --property=TasksMax=1024 \
   --property=RuntimeMaxSec=30min \
-  --setenv=HOME="$site_dir" \
   --setenv=PATH="$TOOLS_PATH:/usr/local/bin:/usr/bin:/bin" \
   --setenv=LANG=C.UTF-8 \
-  "/usr/local/lib/kelmscott/$command" "$site_dir/repository" "$git_url"
+  "${program[@]}"

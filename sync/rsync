@@ -1,6 +1,7 @@
 #!/bin/bash
 # Synchronisation par rsync sur SSH
 # La clé privée est chargée dans un ssh-agent dédié, sans être écrite sur le disque.
+# Exécuté dans le sandbox (sandbox/sync).
 set -euo pipefail
 : "${RSYNC_HOST:?RSYNC_HOST manquant}"
 : "${RSYNC_USER:?RSYNC_USER manquant}"

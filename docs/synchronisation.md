@@ -4,7 +4,7 @@ Les scripts de synchronisation sont dans Kelmscott (`sync/`), et non dans les d�
 
 rsync et ssh viennent des paquets Ubuntu, mis à jour par le système. rclone est installé avec mise, en version figée dans `bin/steps/tools`, car le paquet Ubuntu est ancien et ne reçoit pas de correctifs de sécurité.
 
-Après une compilation réussie, Kelmscott lance `sync/<sync_method>` avec le chemin du dépôt, et uniquement les variables de la méthode choisie dans son environnement. Le dossier envoyé est toujours `public/` ; la publication est refusée s'il contient un lien symbolique. Aucun secret n'est écrit sur le disque. La sortie est ajoutée au log du site.
+Après une compilation réussie, Kelmscott lance `sync/<sync_method>` dans le sandbox, sous l'utilisateur `kelmscott-sync` (voir [Cloisonnement des builds](cloisonnement.md)), avec le chemin du dépôt, et uniquement les variables de la méthode choisie dans son environnement. Le dossier envoyé est toujours `public/` ; la publication est refusée s'il contient autre chose que des fichiers et des dossiers ordinaires (lien symbolique, FIFO…). Aucun secret n'est écrit sur le disque. La sortie est ajoutée au log du site.
 
 ## dxfl
 

@@ -4,5 +4,6 @@ threads threads_count, threads_count
 
 preload_app!
 
-port ENV.fetch('PORT', 3000)
+# Seulement en local : nginx est le seul point d'entrée (HTTPS), même si le pare-feu était désactivé
+bind "tcp://127.0.0.1:#{ENV.fetch('PORT', 3000)}"
 environment ENV.fetch('RACK_ENV', 'production')

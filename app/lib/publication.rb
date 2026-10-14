@@ -1,3 +1,4 @@
+require 'base64'
 require 'fileutils'
 require_relative 'formats'
 
@@ -5,17 +6,16 @@ require_relative 'formats'
 class Publication
   include Formats
 
-  # La récupération et la compilation, qui exécutent du code du dépôt,
-  # tournent dans le sandbox (sandbox/run), sous l'utilisateur kelmscott-build
+  # Chaque étape tourne dans le sandbox (sandbox/run) : la récupération et la compilation, qui exécutent
+  # du code du dépôt, sous kelmscott-build ; la synchronisation, qui reçoit les secrets, sous kelmscott-sync
   SANDBOX_PATH = '/usr/local/sbin/kelmscott-sandbox'
   # Un dossier par site, écrit par le build
   SITES_PATH = '/srv/kelmscott/sites'
   # Logs, statuts et verrous, écrits par le service, invisibles depuis le sandbox
   STATE_PATH = '/srv/kelmscott/state'
-  SYNC_PATH = File.expand_path('../../sync', __dir__)
 
   # Liste blanche, identique à Communication::Website::Variable dans l'admin Osuny
-  # Chaque méthode correspond à un script dans sync/
+  # Chaque méthode correspond à un script dans sync/, installé par bin/steps/sandbox
   KEYS_BY_SYNC_METHOD = {
     'sftp' => %w[SFTP_HOST SFTP_PORT SFTP_USER SFTP_PASSWORD SFTP_PATH],
     'dxfl' => %w[DXFL_BUCKET AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY],
@@ -31,6 +31,23 @@ class Publication
                       :environment,
                       :durations,
                       :started_at
+
+  # Publications simultanées par processus Puma : au-delà, Kelmscott répond 503 et l'admin réessaie plus tard
+  MAX_RUNNING = 2
+  @running = 0
+  @mutex = Mutex.new
+
+  def self.reserve
+    @mutex.synchronize do
+      return false if @running >= MAX_RUNNING
+      @running += 1
+    end
+    true
+  end
+
+  def self.release
+    @mutex.synchronize { @running -= 1 }
+  end
 
   # Fichier d'état d'un site (log, status, size, lock), lu aussi par l'interface web
   def self.state_file(university, site, extension)
@@ -104,11 +121,14 @@ class Publication
     step('Compilation') { build('compile') } || error('Échec de la compilation')
   end
 
-  # Un lien symbolique dans public/ ferait mettre en ligne un fichier du serveur, lu par le service
+  # Seuls des fichiers et des dossiers ordinaires sont mis en ligne : un lien symbolique publierait un fichier
+  # du serveur, et un fichier spécial (FIFO…) bloquerait la synchronisation
   def publishable
     public_path = File.join(repository_path, 'public')
-    links = Dir.glob('**/*', File::FNM_DOTMATCH, base: public_path).select { |path| File.symlink?(File.join(public_path, path)) }
-    links.empty? || error("Liens symboliques interdits dans public : #{links.join(', ')}")
+    forbidden = Dir.glob('**/*', File::FNM_DOTMATCH, base: public_path).reject do |path|
+      %w[file directory].include?(File.lstat(File.join(public_path, path)).ftype)
+    end
+    forbidden.empty? || error("Fichiers interdits dans public (liens symboliques, fichiers spéciaux) : #{forbidden.join(', ')}")
   end
 
   def synced
@@ -162,13 +182,25 @@ class Publication
     execute('sudo', '--non-interactive', SANDBOX_PATH, command, university, site, *arguments)
   end
 
-  # Hors sandbox, sous l'utilisateur du service : seul code à recevoir les secrets
+  # Les variables passent par l'entrée standard : ni par les arguments (visibles dans ps),
+  # ni par l'environnement de l'unité systemd (visible dans systemctl show)
   def sync
-    execute(environment, File.join(SYNC_PATH, sync_method), repository_path)
+    execute('sudo', '--non-interactive', SANDBOX_PATH, 'sync', university, site, sync_method, input: sync_input)
   end
 
-  def execute(*command)
-    system(*command, out: [log_path, 'a'], err: [:child, :out])
+  # Une variable par ligne, NOM=valeur en base 64, lue par sandbox/sync
+  def sync_input
+    environment.map { |name, value| "#{name}=#{Base64.strict_encode64(value)}\n" }.join
+  end
+
+  def execute(*command, input: nil)
+    return system(*command, out: [log_path, 'a'], err: [:child, :out]) if input.nil?
+    IO.popen(command, 'w', out: [log_path, 'a'], err: [:child, :out]) do |io|
+      io.write(input)
+    rescue Errno::EPIPE
+      # Le processus s'est arrêté sans tout lire : son code de sortie le dit
+    end
+    $?.success?
   end
 
   def error(message)

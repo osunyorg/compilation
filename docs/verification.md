@@ -6,11 +6,11 @@
 
 ```bash
 systemctl is-active kelmscott-puma nginx
-id kelmscott-build
+id kelmscott-build kelmscott-sync
 ls -l /usr/local/sbin/kelmscott-sandbox /usr/local/lib/kelmscott /etc/sudoers.d/kelmscott
 ```
 
-Attendu : deux fois `active`, l'utilisateur `kelmscott-build` existe, et les fichiers appartiennent à `root`.
+Attendu : deux fois `active`, les utilisateurs `kelmscott-build` et `kelmscott-sync` existent, et les fichiers appartiennent à `root`.
 
 ## 2. Sandbox
 
@@ -18,9 +18,11 @@ Attendu : deux fois `active`, l'utilisateur `kelmscott-build` existe, et les fic
 sudo -n /usr/local/sbin/kelmscott-sandbox
 sudo -n /usr/local/sbin/kelmscott-sandbox compile ../.. site
 sudo -n /usr/local/sbin/kelmscott-sandbox fetch test site file:///etc
+sudo -n /usr/local/sbin/kelmscott-sandbox sync test site ftp
+echo "PATH=$(printf /tmp | base64)" | sudo -n /usr/local/sbin/kelmscott-sandbox sync test canary sftp
 ```
 
-Attendu : `commande inconnue`, `université invalide`, puis `URL invalide`, sans demande de mot de passe.
+Attendu : `commande inconnue`, `université invalide`, `URL invalide`, `méthode de synchronisation invalide`, puis `variable refusée` (après le test d'isolation, qui crée `test/canary`), sans demande de mot de passe.
 
 ## 3. HTTP
 

@@ -3,7 +3,7 @@ require_relative 'test_helper'
 class PublicationTest < KelmscottTest
   # Remplace le sandbox et la synchronisation, qui ne tournent que sur le serveur
   class FakePublication < Publication
-    attr_accessor :fetch_result, :compile_result, :sync_result, :public_files, :public_links, :site_files, :error_to_raise
+    attr_accessor :fetch_result, :compile_result, :sync_result, :public_files, :public_links, :public_fifos, :site_files, :error_to_raise
 
     def initialize(*)
       super
@@ -12,6 +12,7 @@ class PublicationTest < KelmscottTest
       @sync_result = true
       @public_files = ['index.html']
       @public_links = []
+      @public_fifos = []
       # Chemin dans le dossier du site => taille en Mo
       @site_files = {}
     end
@@ -25,6 +26,7 @@ class PublicationTest < KelmscottTest
       FileUtils.mkdir_p(public_path)
       public_files.each { |file| File.write(File.join(public_path, file), 'ok') }
       public_links.each { |link| File.symlink('/etc/hosts', File.join(public_path, link)) }
+      public_fifos.each { |fifo| File.mkfifo(File.join(public_path, fifo)) }
       site_files.each do |file, megabytes|
         path = File.join(site_path, file)
         FileUtils.mkdir_p(File.dirname(path))
@@ -123,8 +125,25 @@ class PublicationTest < KelmscottTest
     publication.public_links = ['secret.txt']
     publication.run
     assert_equal 'failure', status
-    assert_includes log, 'Liens symboliques interdits dans public : secret.txt'
+    assert_includes log, 'Fichiers interdits dans public (liens symboliques, fichiers spéciaux) : secret.txt'
     refute_includes log, 'Synchronisation simulée'
+  end
+
+  def test_refuses_special_files
+    publication.public_fifos = ['bloque']
+    publication.run
+    assert_equal 'failure', status
+    assert_includes log, 'Fichiers interdits dans public (liens symboliques, fichiers spéciaux) : bloque'
+  end
+
+  # Format lu par sandbox/sync, y compris pour une clé SSH sur plusieurs lignes
+  def test_sync_input
+    environment = { 'SFTP_HOST' => 'ftp.example.org', 'RSYNC_SSH_PRIVATE_KEY' => "-----BEGIN\nclé\n-----END\n" }
+    input = Publication.new('universite', 'site', 'https://example.org/site.git', 'sftp', environment).send(:sync_input)
+    lines = input.lines(chomp: true)
+    assert_equal 2, lines.size
+    decoded = lines.to_h { |line| name, value = line.split('=', 2); [name, Base64.strict_decode64(value).force_encoding('UTF-8')] }
+    assert_equal environment, decoded
   end
 
   def test_exception
