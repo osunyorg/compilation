@@ -47,9 +47,11 @@ class AppTest < KelmscottTest
 
   def test_university
     FileUtils.mkdir_p(File.join(Publication::Site::SITES_PATH, 'universite', 'site'))
+    write_state('universite', 'site', 'status', 'success')
     get '/universite'
     assert last_response.ok?
-    assert_includes last_response.body, 'site'
+    assert_includes last_response.body, '<a href="/universite/site">site</a>'
+    assert_includes last_response.body, '<img src="/universite/site/badge.svg" alt="Statut : succès">'
   end
 
   def test_site_logs_in_utf8_without_lang

@@ -5,9 +5,22 @@
   </ol>
 </nav>
 
-<p>Sites</p>
-<ul>
-  <% @sites.each do |site| %>
-    <li><a href="/<%= @university %>/<%= site %>"><%= site %></a></li>
-  <% end %>
-</ul>
+<div class="block">
+  <table>
+    <thead>
+      <tr>
+        <th>Site</th>
+        <th>Statut</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @sites.each do |name| %>
+        <% site = Publication::Site.new(@university, name) %>
+        <tr>
+          <td><a href="/<%= site.university %>/<%= site.name %>"><%= site.name %></a></td>
+          <td><img src="/<%= site.university %>/<%= site.name %>/badge.svg" alt="Statut : <%= badge(site.status).first %>"></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>
