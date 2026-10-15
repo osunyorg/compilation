@@ -7,6 +7,9 @@ set -euo pipefail
 : "${RSYNC_USER:?RSYNC_USER manquant}"
 : "${RSYNC_PATH:?RSYNC_PATH manquant}"
 : "${RSYNC_SSH_PRIVATE_KEY:?RSYNC_SSH_PRIVATE_KEY manquant}"
+if [[ -n "${RSYNC_BASTION_HOST:-}" ]]; then
+  : "${RSYNC_BASTION_USER:?RSYNC_BASTION_USER manquant}"
+fi
 
 eval "$(ssh-agent -s)" > /dev/null
 trap 'ssh-agent -k > /dev/null' EXIT
@@ -15,7 +18,7 @@ unset RSYNC_SSH_PRIVATE_KEY
 
 # Pas de -a : sans -l, les liens symboliques sont ignorés
 rsync_args=(-rtvz --delete)
-if [[ -n "${RSYNC_BASTION_HOST}" ]]; then
+if [[ -n "${RSYNC_BASTION_HOST:-}" ]]; then
   # Mode bastion SSH
   rsync_args+=(
     -e "ssh -p ${RSYNC_PORT:-22} -o StrictHostKeyChecking=accept-new -J ${RSYNC_BASTION_USER}@${RSYNC_BASTION_HOST}:${RSYNC_BASTION_PORT:-22}"
