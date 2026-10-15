@@ -1,0 +1,8 @@
+{
+  "name": "kelmscott-dxfl",
+  "private": true,
+  "description": "dxfl, pour la synchronisation vers Deuxfleurs, installé une fois et partagé en lecture seule par toutes les synchronisations",
+  "dependencies": {
+    "dxfl": "0.7.0"
+  }
+}

@@ -38,6 +38,13 @@ sudo rm -rf /usr/local/lib/kelmscott/build
 sudo cp -a build /usr/local/lib/kelmscott/build
 sudo chown -R root:root /usr/local/lib/kelmscott/build
 
+# dxfl, pour la synchronisation, à part : les builds ne le voient pas, et les synchronisations ne voient pas
+# les dépendances de build. --omit=dev : dxfl publie ses outils de développement dans son shrinkwrap
+(cd dxfl && as_service npm ci --omit=dev --ignore-scripts --no-audit --no-fund)
+sudo rm -rf /usr/local/lib/kelmscott/dxfl
+sudo cp -a dxfl /usr/local/lib/kelmscott/dxfl
+sudo chown -R root:root /usr/local/lib/kelmscott/dxfl
+
 # Outils (node, hugo) installés par mise, accessibles en lecture seule dans le sandbox
 printf 'TOOLS_DIR=%q\nTOOLS_PATH=%q\n' \
   "$SERVICE_HOME/.local/share/mise/installs" \

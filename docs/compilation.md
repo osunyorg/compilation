@@ -11,7 +11,7 @@ Contraintes :
 - le site utilise le thème osuny dans `themes/osuny`, dans une version qui fournit `pagefind.yml` ;
 - la compilation se fait sans réseau : le thème est un sous-module du dépôt, et rien n'est téléchargé (pas de module Hugo distant, ni `resources.GetRemote`) ;
 - le site n'a pas d'autres dépendances npm que le thème : les sites qui en ont continuent d'être compilés par leur propre CI ;
-- `build/package.json` liste ce que le build du thème utilise réellement (son `postcss.config.js` et pagefind), et non une copie de son `package.json`. Seule exception, `dxfl`, utilisé par la synchronisation et non par le build.
+- `build/package.json` liste ce que le build du thème utilise réellement (son `postcss.config.js` et pagefind), et non une copie de son `package.json`. dxfl, qui sert à la synchronisation, est installé à part (`dxfl/`).
 
 ## Mise à jour des dépendances de build
 
