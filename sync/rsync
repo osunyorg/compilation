@@ -14,6 +14,20 @@ printf '%s\n' "$RSYNC_SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add - 2> /dev/null
 unset RSYNC_SSH_PRIVATE_KEY
 
 # Pas de -a : sans -l, les liens symboliques sont ignorés
-rsync -rtvz --delete \
-  -e "ssh -p ${RSYNC_PORT:-22} -o StrictHostKeyChecking=accept-new" \
-  "$1/public/" "$RSYNC_USER@$RSYNC_HOST:$RSYNC_PATH/"
+rsync_args=(-rtvz --delete)
+if [[ -n "${RSYNC_BASTION_HOST}" ]]; then
+  # Mode bastion SSH
+  rsync_args+=(
+    -e "ssh -p ${RSYNC_PORT:-22} -o StrictHostKeyChecking=accept-new -J ${RSYNC_BASTION_USER}@${RSYNC_BASTION_HOST}:${RSYNC_BASTION_PORT:-22}"
+  )
+else
+  # Mode SSH classique
+  rsync_args+=(
+    -e "ssh -p ${RSYNC_PORT:-22} -o StrictHostKeyChecking=accept-new" \
+  )
+fi
+rsync_args+=(
+  "$1/public/"
+  "$RSYNC_USER@$RSYNC_HOST:$RSYNC_PATH/"
+)
+rsync "${rsync_args[@]}"
