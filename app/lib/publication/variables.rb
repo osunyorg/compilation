@@ -15,7 +15,7 @@ class Publication
     SECRET_KEYS = %w[SFTP_PASSWORD RSYNC_SSH_PRIVATE_KEY AWS_SECRET_ACCESS_KEY].freeze
 
     # Générée par bin/configure/keys, jamais versionnée
-    PRIVATE_KEY_PATH = File.expand_path('../config/kelmscott.key', __dir__)
+    PRIVATE_KEY_PATH = File.expand_path('../../config/kelmscott.key', __dir__)
 
     # Les secrets déchiffrés, par nom. Ils sont chiffrés par l'admin avec la clé publique de Kelmscott (sealed box libsodium).
     def self.secrets(variables)
