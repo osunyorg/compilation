@@ -8,7 +8,7 @@ module Helpers
   # Clé publique de signature de l'admin Osuny, pour vérifier l'origine des demandes (bin/configure/keys)
   ADMIN_KEY_PATH = File.expand_path('../config/admin.pub', __dir__)
   # Au-delà, une demande signée est refusée, pour limiter le rejeu
-  SIGNATURE_MAX_AGE = 300
+  SIGNATURE_MAX_AGE = 300 # 5 minutes
   # Forges depuis lesquelles un dépôt peut être récupéré
   GIT_HOSTS = %w[
     github.com
