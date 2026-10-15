@@ -1,0 +1,8 @@
+#!/bin/bash
+# Met à jour les versions des dépendances de dxfl dans les plages de package.json, sans rien installer ni exécuter.
+# À lancer sur un poste de développement, puis commiter package-lock.json :
+# sur la VM, bin/update réinstalle ensuite dxfl à l'identique (npm ci).
+set -e
+cd "$(dirname "$0")"
+npm update --package-lock-only --ignore-scripts --no-audit --no-fund
+git --no-pager diff --stat -- package-lock.json

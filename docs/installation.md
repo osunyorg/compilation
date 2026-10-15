@@ -11,7 +11,8 @@ bin/        administration de la machine, lancée à la main
   lib/        fonctions communes aux scripts
 sandbox/    récupération, compilation et synchronisation des sites, chacune dans un sandbox sans droits
 sync/       synchronisation des sites compilés, seule à recevoir les secrets
-build/      dépendances du thème et dxfl, installées une fois et partagées en lecture seule (update : mise à jour des versions)
+build/      dépendances du thème, installées une fois et partagées en lecture seule (update : mise à jour des versions)
+dxfl/       dxfl pour la synchronisation, installé de la même façon
 ```
 
 ## Prérequis
