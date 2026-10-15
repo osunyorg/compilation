@@ -1,14 +1,14 @@
 #!/bin/bash
 # Compilation d'un site. Exécuté dans le sandbox (sandbox/run).
-# Les dépendances du thème viennent de la toolchain de Kelmscott (toolchain/), partagée en lecture seule :
+# Les dépendances du thème viennent des dépendances de build de Kelmscott (build/), partagée en lecture seule :
 # ni yarn, ni node_modules, ni cache par site, et aucun script npm ou du thème n'est exécuté.
 set -e
 cd "$1"
 # Hugo ne supprime pas les pages retirées du site, il faut le faire
 rm -rf public
-# Le node_modules du site est remplacé par la toolchain (PostCSS, leaflet…)
+# Le node_modules du site est remplacé par les dépendances de build (PostCSS, leaflet…)
 rm -rf node_modules
-ln -s /usr/local/lib/kelmscott/toolchain/node_modules node_modules
+ln -s /usr/local/lib/kelmscott/build/node_modules node_modules
 hugo --minify
 # La configuration (dossier du site, pages indexées, sélecteurs exclus) est dans le pagefind.yml du thème,
 # que pagefind lit dans le dossier où il est lancé

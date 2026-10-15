@@ -44,7 +44,7 @@ class Publication
     end
 
     # Détail du poids : les morceaux mesurés, et par différence les sources du dépôt et les caches du build
-    # (node_modules n'est qu'un lien vers la toolchain partagée)
+    # (node_modules n'est qu'un lien vers les dépendances de build partagées)
     def size_details(size)
       repository = disk_usage(site.repository_path)
       details = {

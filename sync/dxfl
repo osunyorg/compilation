@@ -4,7 +4,7 @@
 # Exécuté dans le sandbox (sandbox/sync), avec les outils de mise dans le PATH.
 #
 # Le dépôt est entièrement contrôlé par le build : rien n'y est résolu ni installé.
-# dxfl vient de la toolchain (root, version figée par le package-lock), sans npx,
+# dxfl vient des dépendances de build (root, version figée par le package-lock), sans npx,
 # qui lirait le .npmrc et le node_modules du dépôt.
 set -euo pipefail
 : "${DXFL_BUCKET:?DXFL_BUCKET manquant}"
@@ -12,4 +12,4 @@ set -euo pipefail
 : "${AWS_SECRET_ACCESS_KEY:?AWS_SECRET_ACCESS_KEY manquant}"
 
 cd "$1"
-/usr/local/lib/kelmscott/toolchain/node_modules/.bin/dxfl deploy "$DXFL_BUCKET" public/ --yes
+/usr/local/lib/kelmscott/build/node_modules/.bin/dxfl deploy "$DXFL_BUCKET" public/ --yes

@@ -1,5 +1,5 @@
 {
-  "name": "kelmscott-toolchain",
+  "name": "kelmscott-build",
   "private": true,
   "description": "Dépendances du thème Osuny, installées une fois et partagées en lecture seule par tous les builds, et dxfl pour la synchronisation",
   "dependencies": {

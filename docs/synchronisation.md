@@ -10,7 +10,7 @@ Après une compilation réussie, Kelmscott lance `sync/<sync_method>` dans le sa
 
 Envoi vers Deuxfleurs avec [dxfl](https://git.deuxfleurs.fr/Deuxfleurs/dxfl). Le fichier `deuxfleurs.toml` du dépôt (redirections, en-têtes) est pris en compte.
 
-dxfl est installé dans la toolchain, en version figée, et lancé par son chemin absolu : jamais avec `npx` dans le dépôt, dont le `.npmrc` et le `node_modules` sont contrôlés par le build.
+dxfl est installé dans les dépendances de build (`build/`), en version figée, et lancé par son chemin absolu : jamais avec `npx` dans le dépôt, dont le `.npmrc` et le `node_modules` sont contrôlés par le build.
 
 Variables, à récupérer dans l'onglet S3 du Guichet Deuxfleurs :
 

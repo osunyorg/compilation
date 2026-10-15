@@ -83,7 +83,7 @@ echo "== logs des autres sites"; ls /srv/kelmscott/state
 echo "== sudo"; sudo -n true
 echo "== écriture hors du site"; touch /etc/canary /srv/kelmscott/canary
 echo "== écriture dans /tmp"; touch /tmp/canary && echo "ok (privé)"
-echo "== toolchain en lecture seule"; touch node_modules/canary
+echo "== dépendances de build en lecture seule"; touch node_modules/canary
 echo "== réseau"; curl -sI https://registry.npmjs.org | head -1
 echo "== autres builds"; ls -d /proc/[0-9]*/root/srv/kelmscott/sites/* 2>&1 | grep -v canary
 ```
@@ -120,7 +120,7 @@ Attendu :
 | sudo | refusé (`no new privileges`) |
 | écriture hors du site | `Read-only file system` |
 | écriture dans /tmp | `ok (privé)` |
-| toolchain en lecture seule | `Read-only file system` |
+| dépendances de build en lecture seule | `Read-only file system` |
 | réseau | rien (pas de réseau pendant la compilation) |
 | autres builds | rien, même si un autre site compile en même temps |
 
