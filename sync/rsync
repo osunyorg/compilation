@@ -21,7 +21,7 @@ rsync_args=(-rtvz --delete)
 if [[ -n "${RSYNC_BASTION_HOST:-}" ]]; then
   # Mode bastion SSH
   rsync_args+=(
-    -e "ssh -p ${RSYNC_PORT:-22} -o UserKnownHostsFile=/var/lib/kelmscott-sync/.ssh/known_hosts -o StrictHostKeyChecking=accept-new -o LogLevel=ERROR -J ${RSYNC_BASTION_USER}@${RSYNC_BASTION_HOST}:${RSYNC_BASTION_PORT:-22}"
+    -e "ssh -p ${RSYNC_PORT:-22} -o UserKnownHostsFile=/var/lib/kelmscott-sync/.ssh/known_hosts -o StrictHostKeyChecking=accept-new -v -J ${RSYNC_BASTION_USER}@${RSYNC_BASTION_HOST}:${RSYNC_BASTION_PORT:-22}"
   )
 else
   # Mode SSH classique
