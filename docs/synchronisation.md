@@ -29,6 +29,9 @@ Variables :
 - `RSYNC_USER`
 - `RSYNC_PATH`
 - `RSYNC_SSH_PRIVATE_KEY` (secret)
+- `RSYNC_BASTION_HOST` (optionnel, en cas d'utilisation de bastion SSH)
+- `RSYNC_BASTION_PORT` (optionnel, 22 par défaut)
+- `RSYNC_BASTION_USER` (optionnel)
 
 ## sftp
 
